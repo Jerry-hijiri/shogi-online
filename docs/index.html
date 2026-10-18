@@ -737,7 +737,7 @@ const ItemShogi = (() => {
     mush:   {name:'きのこ', short:'きのこ', need:'own', desc:'自分の駒1枚が大きくなる。取られそうになったら1回だけ弾き返し、元の大きさに戻る。'},
     volt:   {name:'10万ボルト', short:'10万ボルト', need:'enemy', desc:'相手の駒1枚に雷を落とす。相手の次の番、その駒は動けない。'},
     ge:     {name:'ゴールド・エクスペリエンス', short:'ゴールドE', need:'own', desc:'仕込みカード。自分の駒（玉以外）の裏に伏せておく。その駒が取られそうになると発動し、金のオーラで宙に浮いて相手の次の番まで取られない。'},
-    hatsu:  {name:'発', short:'発', need:'own', desc:'自分の駒1枚が白いオーラを纏う。纏った駒は相手のアイテム攻撃を受けない（10万ボルトの対象にならない、ギガスラッシュの巻き添えにならない、拳骨衝突でも粉砕されず普通に取られるだけ）。'},
+    hatsu:  {name:'発', short:'発', need:'own', desc:'自分の駒1枚が白いオーラを纏う。纏った駒は相手のカードの攻撃を受けない（10万ボルトの対象にならない、ギガスラッシュの巻き添えにならない、拳骨衝突でも粉砕されず普通に取られるだけ）。'},
     gum:    {name:'バンジーガム', short:'バンジーガム', need:'own', desc:'自分の駒1枚がガムのオーラを纏い、バンジーガムを操れるようになる。ガムを2か所（駒かマス）につけて縮めると、2つ目につけた駒が1つ目の方へ引き寄せられる。縮めるとその番の1手になる。つける・はずすは自由。'},
     impact: {name:'拳骨衝突（ギャラクシーインパクト）', short:'拳骨衝突', need:'own', desc:'理外の覇気が盤面を穿つ！ 自分の駒1枚に覇気を纏わせる。その駒が次に相手の駒を取ると、その駒を粉砕する。粉砕された駒は持ち駒にならず墓地へ送られ、二度と使えない（きのこ・仕込みカードも貫通）。'},
     shimon: {name:'八門遁甲の陣（死門）', short:'死門', need:'own', desc:'己の掟を貫き通す奥義。自分の銀・金・桂・香・飛・角（成っていない駒）1枚が死門を開き、ワインレッドに染まる。このターン、その駒は駒を飛び越えて盤上のどのマスへも一気に移動できる。進んだ道と移動先の駒は敵味方問わずすべて炭化して墓地へ。最後に自分の駒も炭化して消える（玉は炭化せず、玉のマスへは移動できない）。'},
@@ -984,7 +984,7 @@ const ItemShogi = (() => {
     n.boxes.splice(bi, 1);
     if (n.cards[owner].length < HAND_MAX){
       const it = ITEMS[Math.floor(rand(n) * ITEMS.length)];
-      n.cards[owner].push(it); ev.push({type:'box', side:owner, item:it, sq}); return '　＋アイテム';
+      n.cards[owner].push(it); ev.push({type:'box', side:owner, item:it, sq}); return '　＋カード';
     }
     ev.push({type:'boxlost', sq}); return '';
   }
@@ -1302,7 +1302,7 @@ const inviteUrl = id => location.href.split('#')[0] + '#' + id;
 const curMoves = () => S.local ? S.localMoves : (S.game?.moves || []);
 const curStamps = () => S.local ? S.localStamps : (S.game?.stamps || []);
 const curStart = () => S.local ? S.localStart : (S.game?.startedAt || S.game?.createdAt || Date.now());
-const curMode = () => S.local ? 'item' : (S.game?.mode || 'normal');
+const curMode = () => S.local ? (S.cheat ? 'item' : 'normal') : (S.game?.mode || 'normal');
 const curSeed = () => S.local ? S.localSeed : (S.game?.seed || 1);
 const isItem = () => curMode() === 'item';
 function replayFor(mode, moves, seed, free){
@@ -1392,11 +1392,12 @@ function pickTarget(sq){
 }
 
 /* ---------- local practice ---------- */
-function saveLocal(){ lsSet('practice3', {m:S.localMoves, t:S.localStamps, s:S.localStart, seed:S.localSeed}); }
+const practiceKey = () => S.cheat ? 'practice3' : 'practiceN';
+function saveLocal(){ lsSet(practiceKey(), {m:S.localMoves, t:S.localStamps, s:S.localStart, seed:S.localSeed}); }
 function openLocal(){
-  const d = lsGet('practice3', null);
+  const d = lsGet(practiceKey(), null);
   if (d){ S.localMoves = d.m || []; S.localStamps = d.t || []; S.localStart = d.s || Date.now(); S.localSeed = d.seed || 1; }
-  else { S.localSeed = (Math.random() * 2**32) >>> 0; S.localStart = Date.now(); }
+  else { S.localMoves = []; S.localStamps = []; S.localSeed = (Math.random() * 2**32) >>> 0; S.localStart = Date.now(); }
   closeGame();
   Object.assign(S, {view:'game', local:true, gameId:null, game:null, viewPly:null, sel:null, promo:null, itemPick:null, confirm:null, manualFlip:false, animSeen:null});
   setPresence(); render(); playNew();
@@ -1566,7 +1567,7 @@ async function createGame(pref, players, mode){
   if (!S.net || !S.myId) return;
   if (needName()) return;
   const now = Date.now(), seed = (Math.random() * 2**32) >>> 0;
-  mode = mode || S.rulePref;
+  mode = mode || (S.cheat ? S.rulePref : 'normal');
   let sente, gote, furigoma = false;
   if (players){ [sente, gote] = players; }
   else {
@@ -1648,7 +1649,7 @@ function kifText(){
   const d = new Date(st), p2 = n => String(n).padStart(2, '0');
   const clean = s => s.replace('（あなた）', '');
   const lines = ['# KIF形式棋譜ファイル', `開始日時：${d.getFullYear()}/${p2(d.getMonth()+1)}/${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}`,
-    `手合割：平手${isItem() ? '（アイテム戦）' : ''}`,
+    `手合割：平手${isItem() ? '（カード戦）' : ''}`,
     `先手：${S.local ? '先手' : clean(nameOf(g?.sente))}`, `後手：${S.local ? '後手' : clean(nameOf(g?.gote))}`, '手数----指手---------消費時間--'];
   const tot = [0, 0];
   rep.entries.forEach((e, i) => {
@@ -1695,7 +1696,7 @@ function render(){
   $('#lobby').hidden = S.view !== 'lobby';
   $('#game').hidden = S.view !== 'game';
   $('#topRight').innerHTML = (S.view === 'game' ? `<button class="btn" data-act="lobby">← ロビーへ</button>` : '')
-    + `<button class="btn" data-act="rules">アイテムの説明</button>`;
+    + (S.cheat ? `<button class="btn" data-act="rules">カードの説明</button>` : '');
   if (S.view === 'lobby'){ $('#game').innerHTML = ''; (S.net === 'ntfy' ? renderWebLobby : renderLobby)(); }
   else { $('#lobby').innerHTML = ''; renderGame(); }
   renderModal();
@@ -1704,14 +1705,14 @@ function render(){
 }
 function renderModal(){
   if (S.modal !== 'rules'){ $('#modal').innerHTML = ''; return; }
-  $('#modal').innerHTML = `<div class="modal" data-act="close-modal"><div class="card" role="dialog" aria-label="アイテム戦のルール">
-    <h2>アイテム戦のルール</h2>
-    <p class="sub">駒の無い空きマスに ？ボックスがランダムに出ます。駒を進めて止まると、アイテムカードを1枚もらえます（最大${I.HAND_MAX}枚）。カードは自分の番に1回、指す前に使えます。カードを使っても手番は終わりません。</p>
+  $('#modal').innerHTML = `<div class="modal" data-act="close-modal"><div class="card" role="dialog" aria-label="カード戦のルール">
+    <h2>カード戦のルール</h2>
+    <p class="sub">駒の無い空きマスに ？ボックスがランダムに出ます。駒を進めて止まると、カードを1枚もらえます（最大${I.HAND_MAX}枚）。カードは自分の番に1回、指す前に使えます。カードを使っても手番は終わりません。</p>
     <div class="rule-list">${I.ITEMS.map(it => `<div class="rule-item">${ICON[it]}<div><b>${I.INFO[it].name}</b><span>${I.INFO[it].desc}</span>
       <div class="cut-row"><label class="btn sm" for="cutinFile-${it}">カットイン画像を選ぶ</label><input type="file" id="cutinFile-${it}" accept="image/*" hidden>
         <button class="btn sm" data-act="cutin-test" data-k="${it}">再生</button><button class="btn sm" data-act="cutin-clear" data-k="${it}" ${cutinImg(it) ? '' : 'disabled'}>標準に戻す</button>${cutinImg(it) ? '<span class="pill wait">自分の画像</span>' : ''}</div></div></div>`).join('')}</div>
-    <p class="sub">バンジーガムの使い方：「バンジーガム」のカードで駒にガムのオーラを纏わせると、アイテム欄に「つける／はずす／縮める」が出ます。1つ目に引き寄せ先（駒かマス）、2つ目に引き寄せたい駒をつけて「縮める」と、2つ目の駒が1つ目の方へ飛んでいきます（空きマスならそのマスへ、駒ならその手前へ）。</p>
-    <p class="sub">アイテム戦では玉を取ったら勝ちです（二刀流の2手目、伏せたカードの発動などで起こります）。打ち歩詰めと千日手の判定はありません。「ザオリク」は使うカードではなく、持っているだけで負けそうなときに自動で唱えます。</p>
+    <p class="sub">バンジーガムの使い方：「バンジーガム」のカードで駒にガムのオーラを纏わせると、カード欄に「つける／はずす／縮める」が出ます。1つ目に引き寄せ先（駒かマス）、2つ目に引き寄せたい駒をつけて「縮める」と、2つ目の駒が1つ目の方へ飛んでいきます（空きマスならそのマスへ、駒ならその手前へ）。</p>
+    <p class="sub">カード戦では玉を取ったら勝ちです（二刀流の2手目、伏せたカードの発動などで起こります）。打ち歩詰めと千日手の判定はありません。「ザオリク」は使うカードではなく、持っているだけで負けそうなときに自動で唱えます。</p>
     <p class="sub">カットイン画像は、このパソコンのブラウザの中だけに保存されます。相手や公開ページには送られず、相手の画面では標準のカットインが出ます。</p>
     <div class="actions" style="display:flex;justify-content:flex-end"><button class="btn primary" data-act="close-modal">閉じる</button></div>
   </div></div>`;
@@ -1719,14 +1720,15 @@ function renderModal(){
 
 function ruleSeg(){
   const b = (v, label, sub) => `<button data-act="rule" data-v="${v}" aria-pressed="${S.rulePref === v}">${label}<small>${sub}</small></button>`;
-  return `<p class="label">ルール</p><div class="seg two" role="group" aria-label="ルール">${b('item', 'アイテム戦', '？ボックスあり')}${b('normal', 'ふつうの将棋', '平手')}</div>`;
+  if (!S.cheat) return '';
+  return `<p class="label">ルール</p><div class="seg two" role="group" aria-label="ルール">${b('item', 'カード戦', '？ボックスあり')}${b('normal', 'ふつうの将棋', '平手')}</div>`;
 }
 function sideSeg(){
   const b = (v, label, sub) => `<button data-act="side" data-v="${v}" aria-pressed="${S.sidePref === v}">${label}<small>${sub}</small></button>`;
   return `<p class="label">手番</p><div class="seg" role="group" aria-label="手番">${b('random', '振り駒', 'おまかせ')}${b('sente', '先手', '☗ 先に指す')}${b('gote', '後手', '☖ 後に指す')}</div>`;
 }
-const practiceCard = `<section class="card"><h2>ひとりで練習</h2><p class="sub">両方の駒を自分で動かせます。？ボックスでアイテムを集めて試せます。待ったもできます。</p><button class="btn wide" data-act="practice">練習盤をひらく</button></section>`;
-const modePill = m => m === 'item' ? '<span class="pill item">アイテム戦</span>' : '';
+const practiceCard = `<section class="card"><h2>ひとりで練習</h2><p class="sub">両方の駒を自分で動かせます。待ったもできます。</p><button class="btn wide" data-act="practice">練習盤をひらく</button></section>`;
+const modePill = m => m === 'item' && S.cheat ? '<span class="pill item">カード戦</span>' : '';
 
 function renderWebLobby(){
   const all = lsGet('games', {});
@@ -1816,7 +1818,7 @@ function renderLobby(){
 }
 
 function itemsPanel(pos, inf){
-  if (!isItem()) return '';
+  if (!isItem() || !S.cheat) return '';
   const free = S.cheat && (S.local || inf.mySide !== null), side = S.local ? pos.turn : inf.mySide;
   let list;
   if (free) list = I.ITEMS;
@@ -1842,7 +1844,7 @@ function itemsPanel(pos, inf){
       <button class="btn sm" data-gum="d" ${mine && I.canGum(pos, 'd') ? '' : 'disabled'}>はずす</button>
       <button class="btn sm" data-gum="c" ${mine && I.canGum(pos, 'c') ? '' : 'disabled'}>縮める</button></div>`;
   }
-  return `<div class="items"><div class="head"><span>アイテム</span><span class="pill">${free ? 'コマンド：使い放題' : `${list.length}/${I.HAND_MAX}枚`}</span></div>
+  return `<div class="items"><div class="head"><span>カード</span><span class="pill">${free ? 'コマンド：使い放題' : `${list.length}/${I.HAND_MAX}枚`}</span></div>
     ${list.length ? `<div class="cardgrid">${cards}</div>` : '<div class="sub" style="color:var(--muted);font-size:12.5px">盤上の ？ボックスに駒を進めると手に入ります。</div>'}
     ${gum}<div class="idesc" id="idesc">${esc(desc)}</div></div>`;
 }
@@ -1944,7 +1946,7 @@ function renderGame(){
     const on = S.room && !S.local && pid && S.online.has(pid);
     const who = `<div class="who" data-side="${side}">${BIRD[side]}<div class="nm"><b>${S.room && !S.local && pid ? `<i class="dot${on ? ' on' : ''}"></i>` : ''}${esc(name)}</b><span id="clock-${side}">0:00</span>${S.money[side] != null ? `<span class="money">持ち金 −${yen(S.money[side])}</span>` : ''}</div></div>`;
     let extra = '';
-    if (item){
+    if (item && S.cheat){
       if (pos.dual && pos.turn === side) extra += `<span class="fxchip" title="二刀流：あと${2 - pos.moved}手">${ICON.dual}</span>`;
       // graveyard: this side's pieces crushed by Galaxy Impact
       const dead = pos.crushed?.[1 - side] || [];
@@ -1958,7 +1960,7 @@ function renderGame(){
   if (!S.local && S.notFound) overlay = `<div class="overlay"><div class="card"><h2>対局が見つかりません</h2><p>招待リンクが間違っているか、記録の保存期間（12時間）が過ぎています。相手にもう一度リンクを送ってもらってください。</p><div class="actions"><button class="btn" data-act="lobby">ロビーへ</button></div></div></div>`;
   else if (!S.local && !g) overlay = `<div class="overlay"><div class="card"><h2>読み込み中…</h2></div></div>`;
   else if (!S.local && g.status === 'waiting' && !inf.result){
-    const rules = `${g.mode === 'item' ? 'アイテム戦' : 'ふつうの将棋'}`;
+    const rules = `${g.mode === 'item' ? 'カード戦' : 'ふつうの将棋'}`;
     if (inf.mySide !== null){
       overlay = S.net === 'ntfy'
         ? `<div class="overlay"><div class="card"><h2>対戦相手を待っています</h2>
@@ -2122,7 +2124,7 @@ function fxRoulette(item, hidden){
   setTimeout(() => {
     clearInterval(spin);
     slot.innerHTML = hidden ? '<b>?</b>' : ICON[item];
-    lbl.textContent = hidden ? '相手がアイテムを入手' : `${I.INFO[item].name} ゲット！`;
+    lbl.textContent = hidden ? '相手がカードを入手' : `${I.INFO[item].name} ゲット！`;
   }, 900);
 }
 const wait = ms => new Promise(r => setTimeout(r, ms));
@@ -2552,7 +2554,7 @@ async function demoRun(item, tok){
     case 'hatsu':
       pcs = {12: own('R'), 2: en('B')}; draw(); await pause(500);
       await cutin('hatsu'); pcs[12].aura = true; draw(); fxHatsu('d12'); SFX.power(); banner('発！', 'white'); await pause(1500);
-      banner('アイテム攻撃を受けない', 'white small'); await pause(1000); break;
+      banner('カードの攻撃を受けない', 'white small'); await pause(1000); break;
     case 'gum':
       pcs = {10: own('B'), 4: en('G')}; draw(); await pause(500);
       await cutin('gum'); pcs[10].gum = true; draw(); ring('d10', '#FF6FB5'); SFX.gum(); await pause(900);
@@ -2837,11 +2839,12 @@ function runCommand(raw){
   const c = raw.trim().replace(/^[\/／]/, '').toLowerCase();
   if (c === 'items' || c === 'item'){
     S.cheat = !S.cheat; lsSet('cheat', S.cheat);
-    toast(S.cheat ? 'アイテム使い放題：ON（このパソコンだけ。自分の番にどのカードでも使えます）' : 'アイテム使い放題：OFF');
+    toast(S.cheat ? 'カード戦：ON（このパソコンだけ。カードを全部いつでも使えます）' : 'カード戦：OFF（普通の将棋の表示に戻しました）');
+    if (S.local && S.view === 'game'){ closeCmd(); openLocal(); return; }
   } else if (c === 'unko') sendFun('unko');
   else if (c === 'fuckyou') sendFun('fy');
   else if (['kingbombee', 'kingbonbee', 'kingbonby', 'bombee', 'キングボンビー'].includes(c)) sendFun('kb');
-  else if (c === 'help') toast('コマンド：items（アイテム使い放題のON/OFF）、unko、fuckyou、kingbombee');
+  else if (c === 'help') toast('コマンド：items（カード戦のON/OFF）、unko、fuckyou、kingbombee');
   else if (c) toast(`「${c}」というコマンドはありません（help で一覧）`);
   closeCmd(); render();
 }
