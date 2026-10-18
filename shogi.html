@@ -2136,7 +2136,7 @@ async function cutin(key){
 function shatter(sq, html){
   const cell = document.querySelector(`.cell[data-sq="${sq}"]`); if (!cell || !html) return;
   const r = cell.getBoundingClientRect(), N = 11, cx = 50 + (Math.random() - .5) * 12, cy = 55 + (Math.random() - .5) * 12;
-  const per = t => { const s = Math.floor(t) % 4, f = (t - Math.floor(t)) * 100; return [[f, 0], [100, f], [100 - f, 100], [0, 100 - f]][s]; };
+  const per = t => { const s = ((Math.floor(t) % 4) + 4) % 4, f = (t - Math.floor(t)) * 100; return [[f, 0], [100, f], [100 - f, 100], [0, 100 - f]][s]; };
   const pts = Array.from({length: N}, (_, i) => per(i / N * 4 + (Math.random() - .5) * .15));
   for (let i = 0; i < N; i++){
     const p1 = pts[i], p2 = pts[(i + 1) % N], mx = (cx + p1[0] + p2[0]) / 3, my = (cy + p1[1] + p2[1]) / 3;
