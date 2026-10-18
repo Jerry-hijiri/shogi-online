@@ -198,6 +198,10 @@ button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px so
 .rule-item svg{width:44px;height:44px}
 .rule-item b{display:block}
 .rule-item span{color:var(--muted);font-size:13px}
+.cut-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}
+.cmdbar{position:fixed;left:50%;bottom:calc(70px + env(safe-area-inset-bottom, 0px));transform:translateX(-50%);z-index:95;display:flex;gap:8px;align-items:center;background:#2A2018;color:#FFF4D6;padding:8px 10px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.cmdbar input{background:#3a2c20;border:1px solid #5a4632;color:#FFF4D6;border-radius:8px;padding:6px 10px;width:220px;font-family:ui-monospace,Menlo,monospace}
+.cmdbar input:focus{outline:2px solid var(--accent)}
 
 /* equipment drawn around a piece (arms, swords); rotates with the piece */
 .deco{position:absolute;left:-50%;top:-15%;width:200%;height:129%;overflow:visible;pointer-events:none;z-index:3}
@@ -324,6 +328,15 @@ button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px so
 .fx-cutin .t small{display:block;font-size:30px;color:#FFE64F;-webkit-text-stroke:7px #2a0a00}
 @keyframes cutintext{0%{scale:.4;opacity:0}12%{scale:.4;opacity:0}22%{scale:1.15;opacity:1}30%{scale:1}40%{translate:3px -2px}44%{translate:-3px 2px}48%{translate:0 0}100%{scale:1.04}}
 .fx-shard{z-index:86;display:grid;place-items:center}
+.fx-cutin .cut-icon{position:absolute;left:26%;top:50%;width:190px;height:190px;transform:translate(-50%,-50%) skewY(6deg);filter:drop-shadow(0 0 18px rgba(255,255,255,.9)) drop-shadow(0 0 4px #000);animation:cuticon 1.6s cubic-bezier(.2,1.4,.4,1) forwards}
+.fx-cutin .cut-icon svg{width:100%;height:100%}
+@keyframes cuticon{0%{scale:.2;rotate:-25deg;opacity:0}14%{scale:1.15;rotate:4deg;opacity:1}24%{scale:1;rotate:0deg}100%{scale:1.08}}
+.fx-cutin .t{font-size:min(66px,5vw)}
+.fx-clone.tremble .pc{animation:tremble .07s linear infinite}
+@keyframes tremble{25%{translate:-3px 1px}75%{translate:3px -1px}}
+.pcrack{position:absolute;inset:6%;width:88%;height:88%;z-index:3;overflow:visible}
+.pcrack path{fill:none;stroke:#120700;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:100;stroke-dashoffset:100;animation:pdraw .35s ease-out forwards;filter:drop-shadow(0 0 3px #ff5a2a)}
+@keyframes pdraw{to{stroke-dashoffset:0}}
 .fx-shard .pc{transition:none}
 .fx-dark{inset:0;background:radial-gradient(circle at 50% 45%,rgba(40,0,0,.35),rgba(8,0,0,.82));opacity:0;animation:darkin .7s ease-out forwards}
 .fx-dark.out{animation:darkout .9s ease-out forwards}
@@ -842,7 +855,9 @@ const ItemShogi = (() => {
       return {st:n, ev, text, pub:text, item:false};
     }
     if (a[0] === '@'){
-      const [item, u] = a.slice(1).split(':');
+      let body = a.slice(1);
+      if (body[0] === '!'){ free = true; body = body.slice(1); }
+      const [item, u] = body.split(':');
       if (!canUse(st, item, free)) return null;
       let sq = -1;
       if (INFO[item].need){ sq = B.usiToSq(u || ''); if (!itemTargets(st, item).includes(sq)) return null; }
@@ -960,6 +975,8 @@ const S = {
   names: {}, avatars: {}, peers: [], online: new Set(),
   sound: lsGet('sound', true),
 };
+{ const old = lsGet('cutin', null); if (old && !lsGet('cutin.impact', null)){ lsSet('cutin.impact', {d: old, w: lsGet('cutinWide', false)}); } }
+S.cheat = lsGet('cheat', false);
 if (ENV === 'web'){
   S.myId = lsGet('me', null) || (() => { const id = rid(16); lsSet('me', id); return id; })();
   S.myName = lsGet('name', '');
@@ -1034,6 +1051,7 @@ const SFX = {
   charge: () => { tone(60, 1.6, 'sawtooth', .07, 240); tone(90, 1.6, 'sine', .12, 360); },
   crackle: () => { for (let i=0;i<14;i++) setTimeout(() => noise(.06, 4000 + Math.random()*3000, 1, 1.4, 'bandpass'), i * 70); },
   power: () => { tone(80, 1.2, 'sawtooth', .06, 160); noise(1.1, 900, .5, .9, 'bandpass'); tone(520, .5, 'sine', .08, 1040, .3); },
+  whoosh: () => { noise(.45, 1200, .4, 1.6, 'bandpass'); tone(300, .4, 'sawtooth', .04, 1200); },
   gum: () => { tone(300, .25, 'sine', .14, 620); tone(620, .3, 'triangle', .08, 240, .18); },
   roulette: () => { for (let i=0;i<12;i++) tone(700 + (i%2)*200, .04, 'square', .04, null, i*.07); tone(1046, .3, 'sine', .14, null, .9); },
 };
@@ -1158,17 +1176,20 @@ function chooseMove(cands){
   else doAction(E.toUsi(cands[0]));
 }
 const matchesSel = m => S.sel && (S.sel.drop ? m.drop === S.sel.drop : m.from === S.sel.from);
+// "@!" marks a card played from the free palette (practice board or the item command)
+const itemFree = () => S.local || S.cheat;
+const itemCode = it => (itemFree() && !(S.local || getRep().pos.cards[getRep().pos.turn].includes(it)) ? '@!' : '@') + it;
 function useItem(it){
   const pos = getRep().pos;
-  if (!canAct() || !I.canUse(pos, it, S.local)) return;
+  if (!canAct() || !I.canUse(pos, it, itemFree())) return;
   if (S.itemPick === it){ S.itemPick = null; render(); return; }
   if (I.INFO[it].need){ S.itemPick = it; S.gumPick = false; S.sel = null; S.promo = null; render(); return; }
-  const a = '@' + it;
+  const a = itemCode(it);
   if (!I.act(pos, a, S.local)){ toast('いまは使えません（指せる手がなくなります）'); return; }
   doAction(a);
 }
 function pickTarget(sq){
-  const it = S.itemPick, pos = getRep().pos, a = `@${it}:${E.sqToUsi(sq)}`;
+  const it = S.itemPick, pos = getRep().pos, a = `${itemCode(it)}:${E.sqToUsi(sq)}`;
   if (!I.act(pos, a, S.local)){ toast('そこには使えません'); return; }
   doAction(a);
 }
@@ -1482,13 +1503,12 @@ function renderModal(){
   $('#modal').innerHTML = `<div class="modal" data-act="close-modal"><div class="card" role="dialog" aria-label="アイテム戦のルール">
     <h2>アイテム戦のルール</h2>
     <p class="sub">駒の無い空きマスに ？ボックスがランダムに出ます。駒を進めて止まると、アイテムカードを1枚もらえます（最大${I.HAND_MAX}枚）。カードは自分の番に1回、指す前に使えます。カードを使っても手番は終わりません。</p>
-    <div class="rule-list">${I.ITEMS.map(it => `<div class="rule-item">${ICON[it]}<div><b>${I.INFO[it].name}</b><span>${I.INFO[it].desc}</span></div></div>`).join('')}</div>
+    <div class="rule-list">${I.ITEMS.map(it => `<div class="rule-item">${ICON[it]}<div><b>${I.INFO[it].name}</b><span>${I.INFO[it].desc}</span>
+      <div class="cut-row"><label class="btn sm" for="cutinFile-${it}">カットイン画像を選ぶ</label><input type="file" id="cutinFile-${it}" accept="image/*" hidden>
+        <button class="btn sm" data-act="cutin-test" data-k="${it}">再生</button><button class="btn sm" data-act="cutin-clear" data-k="${it}" ${cutinImg(it) ? '' : 'disabled'}>標準に戻す</button>${cutinImg(it) ? '<span class="pill wait">自分の画像</span>' : ''}</div></div></div>`).join('')}</div>
     <p class="sub">バンジーガムの使い方：「バンジーガム」のカードで駒にガムのオーラを纏わせると、アイテム欄に「つける／はずす／縮める」が出ます。1つ目に引き寄せ先（駒かマス）、2つ目に引き寄せたい駒をつけて「縮める」と、2つ目の駒が1つ目の方へ飛んでいきます（空きマスならそのマスへ、駒ならその手前へ）。</p>
     <p class="sub">アイテム戦では玉を取ったら勝ちです（二刀流の2手目、伏せたカードの発動などで起こります）。打ち歩詰めと千日手の判定はありません。練習盤では全部のアイテムを何度でも使えます。</p>
-    <h2 style="margin-top:18px">ギャラクシーインパクトのカットイン画像</h2>
-    <p class="sub">好きな画像に差し替えられます。画像はこのパソコンのブラウザの中だけに保存され、相手や公開ページには送られません（相手の画面では標準のカットインが出ます）。</p>
-    <div class="actions" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px"><label class="btn" for="cutinFile">画像を選ぶ</label><input type="file" id="cutinFile" accept="image/*" hidden>
-      <button class="btn" data-act="cutin-test">試しに再生</button><button class="btn" data-act="cutin-clear" ${lsGet('cutin', null) ? '' : 'disabled'}>標準に戻す</button></div>
+    <p class="sub">カットイン画像は、このパソコンのブラウザの中だけに保存されます。相手や公開ページには送られず、相手の画面では標準のカットインが出ます。</p>
     <div class="actions" style="display:flex;justify-content:flex-end"><button class="btn primary" data-act="close-modal">閉じる</button></div>
   </div></div>`;
 }
@@ -1593,7 +1613,7 @@ function renderLobby(){
 
 function itemsPanel(pos, inf){
   if (!isItem()) return '';
-  const free = S.local;
+  const free = S.local || (S.cheat && inf.mySide !== null);
   let list;
   if (free) list = I.ITEMS;
   else if (inf.mySide !== null) list = pos.cards[inf.mySide];
@@ -1617,7 +1637,7 @@ function itemsPanel(pos, inf){
       <button class="btn sm" data-gum="d" ${mine && I.canGum(pos, 'd') ? '' : 'disabled'}>はずす</button>
       <button class="btn sm" data-gum="c" ${mine && I.canGum(pos, 'c') ? '' : 'disabled'}>縮める</button></div>`;
   }
-  return `<div class="items"><div class="head"><span>アイテム</span><span class="pill">${free ? '練習：使い放題' : `${list.length}/${I.HAND_MAX}枚`}</span></div>
+  return `<div class="items"><div class="head"><span>アイテム</span><span class="pill">${S.local ? '練習：使い放題' : free ? 'コマンド：使い放題' : `${list.length}/${I.HAND_MAX}枚`}</span></div>
     ${list.length ? `<div class="cardgrid">${cards}</div>` : '<div class="sub" style="color:var(--muted);font-size:12.5px">盤上の ？ボックスに駒を進めると手に入ります。</div>'}
     ${gum}<div class="idesc" id="idesc">${esc(desc)}</div></div>`;
 }
@@ -1894,7 +1914,9 @@ function fxRoulette(item, hidden){
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const above = (sq, k = 1.1) => { const c = cellCenter(sq); return c && {x: c.x, y: Math.max(40, c.y - c.h * k)}; };
 function growDeco(sq, kind){ document.querySelector(`.cell[data-sq="${sq}"] .deco.${kind}`)?.classList.add('grow'); }
-function playEv(ev){
+const CUT_FOR = {dual:'dual', star:'star', giga:'giga', mush:'mush', volt:'volt', hatsu:'hatsu', gum:'gum', geon:'ge'};
+async function playEv(ev){
+  if (CUT_FOR[ev.type]) await cutin(CUT_FOR[ev.type]);
   switch (ev.type){
     case 'dual': growDeco(ev.sq, 'dual'); fxSwords(); SFX.slash(); break;
     case 'star': fxStar(ev.sq); SFX.chime(); break;
@@ -1942,10 +1964,11 @@ async function runAnim(){
         S.animPly = i; render();
         for (const ev of pre){ await playPre(ev); render(); }
         S.animPly = null; render();
+        if (S.postFx){ S.postFx(); S.postFx = null; await wait(500); }
       }
       if (ent.isMove) clack();
       const rest = evs.filter(e => !e.pre);
-      for (const ev of rest){ await wait(120); playEv(ev); await wait(380); }
+      for (const ev of rest){ await wait(120); await playEv(ev); await wait(380); }
       if (!rest.length) await wait(60);
     }
   } finally {
@@ -2014,15 +2037,27 @@ function crack(c){
   fx('fx-crack', `<svg width="${g.width}" height="${g.height}" style="overflow:hidden">${paths}</svg>`, {left: g.left + 'px', top: g.top + 'px'}, 3500);
 }
 const FIST = `<svg viewBox="0 0 120 120"><g fill="rgba(25,0,0,.75)" stroke="rgba(255,60,40,.9)" stroke-width="3" stroke-linejoin="round"><rect x="30" y="4" width="60" height="44" rx="10"/><rect x="18" y="44" width="84" height="62" rx="20"/><path d="M38 106 v-24 M60 106 v-24 M82 106 v-24" stroke-width="3"/><path d="M18 64 h26 a10 10 0 0 1 0 20 h-14"/></g></svg>`;
-// Manga-style cut-in, drawn as original art on a canvas. A viewer may swap in their own picture; it stays in their browser only.
-function drawCutin(cv){
-  const ctx = cv.getContext('2d'), w = cv.width, h = cv.height, fx0 = w * .26, fy0 = h * .5;
-  let g = ctx.createLinearGradient(0, 0, w, h); g.addColorStop(0, '#2b1508'); g.addColorStop(1, '#0b0503');
+// Cut-in look for each item: a title pair and a palette for the canvas art
+const CUTIN = {
+  dual:   {small:'抜刀', big:'二刀流', bg:['#0e1830','#05080f'], burst:['#ffffff','#bfe3ff','#4a90e2'], bolt:'#9fd3ff', line:'rgba(180,220,255,.45)', stroke:'#0d2a52'},
+  star:   {small:'無敵', big:'スター', bg:['#21103a','#0a0414'], burst:'rainbow', bolt:'#ffe14a', line:'rgba(255,240,150,.45)', stroke:'#5b2a00'},
+  giga:   {small:'勇者の剣技', big:'ギガスラッシュ', bg:['#04182a','#02070d'], burst:['#ffffff','#bff3ff','#29a8e0'], bolt:'#5fe0ff', line:'rgba(120,230,255,.45)', stroke:'#003a5c'},
+  mush:   {small:'パワーアップ', big:'きのこ', bg:['#3a0a0a','#120303'], burst:['#ffffff','#ffd0c8','#e53935'], bolt:'#ffffff', line:'rgba(255,200,190,.4)', stroke:'#7a0d0d'},
+  volt:   {small:'でんき', big:'10万ボルト', bg:['#14141f','#050508'], burst:['#fffde8','#ffe84a','#f0a000'], bolt:'#ffe84a', line:'rgba(255,240,120,.5)', stroke:'#4a3500'},
+  ge:     {small:'スタンド能力', big:'ゴールド・エクスペリエンス', bg:['#261a00','#0c0800'], burst:['#fffbe0','#f7d35a','#c9921a'], bolt:'#ffe08a', line:'rgba(255,220,120,.45)', stroke:'#4d3300'},
+  hatsu:  {small:'念能力', big:'発', bg:['#0e1830','#04070e'], burst:['#ffffff','#e3efff','#8fb4ff'], bolt:'#cfe2ff', line:'rgba(220,235,255,.5)', stroke:'#1d3a6b'},
+  gum:    {small:'伸縮自在の愛', big:'バンジーガム', bg:['#2e0b22','#0f030b'], burst:['#ffffff','#ffc2e2','#ff5fb0'], bolt:'#ff7ec2', line:'rgba(255,170,215,.45)', stroke:'#6b0f45'},
+  impact: {small:'拳骨衝突', big:'ギャラクシーインパクト', bg:['#2b1508','#0b0503'], burst:['#FFFFF0','#FFE64F','#FF9A1F'], bolt:'#F0461E', line:'rgba(255,180,70,.35)', stroke:'#8a0d00', fist:true},
+};
+// Manga-style cut-in art drawn on a canvas. A viewer may swap in their own picture per item; it stays in their browser only.
+function drawCutin(cv, key){
+  const th = CUTIN[key], ctx = cv.getContext('2d'), w = cv.width, h = cv.height, fx0 = w * .26, fy0 = h * .5, u = h / 240;
+  let g = ctx.createLinearGradient(0, 0, w, h); g.addColorStop(0, th.bg[0]); g.addColorStop(1, th.bg[1]);
   ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
   for (let i = 0; i < 260; i++){
     const a = Math.random() * Math.PI * 2, r0 = h * (.15 + Math.random() * .2), r1 = w * (.5 + Math.random() * .7);
-    ctx.strokeStyle = i % 4 === 0 ? 'rgba(255,245,210,.7)' : i % 4 === 1 ? 'rgba(10,5,0,.8)' : 'rgba(255,180,70,.35)';
-    ctx.lineWidth = (Math.random() * 3 + .6) * h / 240;
+    ctx.strokeStyle = i % 4 === 0 ? 'rgba(255,250,235,.7)' : i % 4 === 1 ? 'rgba(0,0,0,.75)' : th.line;
+    ctx.lineWidth = (Math.random() * 3 + .6) * u;
     ctx.beginPath(); ctx.moveTo(fx0 + Math.cos(a) * r0, fy0 + Math.sin(a) * r0); ctx.lineTo(fx0 + Math.cos(a) * r1, fy0 + Math.sin(a) * r1); ctx.stroke();
   }
   const R = h * .78;
@@ -2030,72 +2065,77 @@ function drawCutin(cv){
   for (let i = 0; i < 56; i++){ const a = i / 56 * Math.PI * 2, r = i % 2 ? R * .42 : R * (.7 + Math.random() * .55); ctx.lineTo(fx0 + Math.cos(a) * r, fy0 + Math.sin(a) * r); }
   ctx.closePath();
   g = ctx.createRadialGradient(fx0, fy0, 0, fx0, fy0, R);
-  g.addColorStop(0, '#FFFFF0'); g.addColorStop(.3, '#FFE64F'); g.addColorStop(.7, '#FF9A1F'); g.addColorStop(1, 'rgba(255,80,20,0)');
-  ctx.fillStyle = g; ctx.fill(); ctx.lineWidth = 4 * h / 240; ctx.strokeStyle = '#E8401C'; ctx.stroke();
-  // fist seen from the front, knuckles toward the viewer
-  const rr = (x, y, ww, hh, r) => { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + ww, y, x + ww, y + hh, r); ctx.arcTo(x + ww, y + hh, x, y + hh, r); ctx.arcTo(x, y + hh, x, y, r); ctx.arcTo(x, y, x + ww, y, r); ctx.closePath(); ctx.fill(); ctx.stroke(); };
-  ctx.save(); ctx.translate(fx0, fy0); ctx.scale(h / 240, h / 240);
-  ctx.shadowColor = '#FFE64F'; ctx.shadowBlur = 30; ctx.fillStyle = '#FFF4C2'; ctx.strokeStyle = '#E2601A'; ctx.lineWidth = 5;
-  rr(-56, -22, 112, 62, 20); ctx.shadowBlur = 0;
-  for (let k = 0; k < 4; k++) rr(-54 + k * 27, -46, 26, 46, 12);
-  rr(-58, 18, 78, 24, 12);
-  ctx.restore();
-  // red lightning outlines
+  if (th.burst === 'rainbow') ['#ffffff', '#fff27a', '#7dff8a', '#6fd8ff', '#b57aff', '#ff7ad1'].forEach((c, i) => g.addColorStop(i / 5 * .95, c));
+  else { g.addColorStop(0, th.burst[0]); g.addColorStop(.3, th.burst[1]); g.addColorStop(.7, th.burst[2]); }
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g; ctx.fill(); ctx.lineWidth = 4 * u; ctx.strokeStyle = th.bolt; ctx.stroke();
+  if (th.fist){
+    const rr = (x, y, ww, hh, r) => { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + ww, y, x + ww, y + hh, r); ctx.arcTo(x + ww, y + hh, x, y + hh, r); ctx.arcTo(x, y + hh, x, y, r); ctx.arcTo(x, y, x + ww, y, r); ctx.closePath(); ctx.fill(); ctx.stroke(); };
+    ctx.save(); ctx.translate(fx0, fy0); ctx.scale(u, u);
+    ctx.shadowColor = '#FFE64F'; ctx.shadowBlur = 30; ctx.fillStyle = '#FFF4C2'; ctx.strokeStyle = '#E2601A'; ctx.lineWidth = 5;
+    rr(-56, -22, 112, 62, 20); ctx.shadowBlur = 0;
+    for (let k = 0; k < 4; k++) rr(-54 + k * 27, -46, 26, 46, 12);
+    rr(-58, 18, 78, 24, 12);
+    ctx.restore();
+  }
   for (let j = 0; j < 7; j++){
     let x = Math.random() * w * .4 + w * .35, y = j % 2 ? 0 : h; const pts = [[x, y]];
     for (let k = 0; k < 7; k++){ x += (Math.random() - .3) * w * .09; y += (j % 2 ? 1 : -1) * h / 7 * (Math.random() * .6 + .7); pts.push([x, y]); }
-    for (const [col, lw] of [['#1a0602', 9], ['#F0461E', 4.5]]){
-      ctx.strokeStyle = col; ctx.lineWidth = lw * h / 240; ctx.lineJoin = 'miter'; ctx.beginPath(); pts.forEach(([px, py], i) => i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)); ctx.stroke();
+    for (const [col, lw] of [['rgba(0,0,0,.85)', 9], [th.bolt, 4.5]]){
+      ctx.strokeStyle = col; ctx.lineWidth = lw * u; ctx.lineJoin = 'miter'; ctx.beginPath(); pts.forEach(([px, py], i) => i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)); ctx.stroke();
     }
   }
-  for (let i = 0; i < 9; i++){ ctx.strokeStyle = 'rgba(110,230,255,.8)'; ctx.lineWidth = 2.5 * h / 240; const x = Math.random() * w * .5, y = h * (.65 + Math.random() * .35); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + w * .05, y - h * .4); ctx.stroke(); }
   ctx.fillStyle = '#FFF6C0';
-  for (let i = 0; i < 16; i++){ const x = Math.random() * w, y = Math.random() * h, s = (3 + Math.random() * 7) * h / 240; ctx.beginPath(); ctx.moveTo(x, y - s * 2); ctx.lineTo(x + s * .4, y); ctx.lineTo(x, y + s * 2); ctx.lineTo(x - s * .4, y); ctx.closePath(); ctx.fill(); ctx.beginPath(); ctx.moveTo(x - s * 2, y); ctx.lineTo(x, y + s * .4); ctx.lineTo(x + s * 2, y); ctx.lineTo(x, y - s * .4); ctx.closePath(); ctx.fill(); }
+  for (let i = 0; i < 16; i++){ const x = Math.random() * w, y = Math.random() * h, s = (3 + Math.random() * 7) * u; ctx.beginPath(); ctx.moveTo(x, y - s * 2); ctx.lineTo(x + s * .4, y); ctx.lineTo(x, y + s * 2); ctx.lineTo(x - s * .4, y); ctx.closePath(); ctx.fill(); ctx.beginPath(); ctx.moveTo(x - s * 2, y); ctx.lineTo(x, y + s * .4); ctx.lineTo(x + s * 2, y); ctx.lineTo(x, y - s * .4); ctx.closePath(); ctx.fill(); }
 }
-async function cutin(){
-  SFX.charge();
-  const g = gridBox(), y = g ? g.top + g.height / 2 : innerHeight / 2, custom = lsGet('cutin', null);
-  // a wide picture fills the whole band; a tall one sits in a framed panel on the left
-  const wide = lsGet('cutinWide', false);
-  const el = fx('fx-cutin', `<canvas></canvas>${custom ? `<img class="${wide ? 'wide' : 'portrait'}" src="${esc(custom)}" alt="">` : ''}<div class="t"><small>拳骨衝突</small>ギャラクシーインパクト</div>`, {top: y + 'px'}, 1650);
-  const cv = el.querySelector('canvas'), dpr = Math.min(2, devicePixelRatio || 1); cv.width = el.clientWidth * dpr; cv.height = el.clientHeight * dpr; drawCutin(cv);
+const cutinImg = key => lsGet('cutin.' + key, null);
+async function cutin(key){
+  if (reduced() || !CUTIN[key]) return;
+  const th = CUTIN[key], img = cutinImg(key);
+  key === 'impact' ? SFX.charge() : SFX.whoosh();
+  const g = gridBox(), y = g ? g.top + g.height / 2 : innerHeight / 2;
+  const pic = img ? `<img class="${img.w ? 'wide' : 'portrait'}" src="${esc(img.d)}" alt="">` : (th.fist ? '' : `<div class="cut-icon">${ICON[key]}</div>`);
+  const el = fx('fx-cutin', `<canvas></canvas>${pic}<div class="t" style="-webkit-text-stroke-color:${th.stroke}"><small>${esc(th.small)}</small>${esc(th.big)}</div>`, {top: y + 'px', boxShadow: `0 0 0 5px ${th.bolt},0 24px 60px rgba(0,0,0,.65)`}, 1650);
+  const cv = el.querySelector('canvas'), dpr = Math.min(2, devicePixelRatio || 1); cv.width = el.clientWidth * dpr; cv.height = el.clientHeight * dpr; drawCutin(cv, key);
   setTimeout(() => tone(1400, .5, 'sawtooth', .05, 300), 250);
   await wait(1500);
 }
 // The captured piece breaks into triangular fragments of itself
 function shatter(sq, html){
   const cell = document.querySelector(`.cell[data-sq="${sq}"]`); if (!cell || !html) return;
-  const r = cell.getBoundingClientRect(), N = 16, cx = 50 + (Math.random() - .5) * 12, cy = 55 + (Math.random() - .5) * 12;
+  const r = cell.getBoundingClientRect(), N = 11, cx = 50 + (Math.random() - .5) * 12, cy = 55 + (Math.random() - .5) * 12;
   const per = t => { const s = Math.floor(t) % 4, f = (t - Math.floor(t)) * 100; return [[f, 0], [100, f], [100 - f, 100], [0, 100 - f]][s]; };
-  const pts = Array.from({length: N}, (_, i) => per(i / N * 4 + (Math.random() - .5) * .12));
+  const pts = Array.from({length: N}, (_, i) => per(i / N * 4 + (Math.random() - .5) * .15));
   for (let i = 0; i < N; i++){
     const p1 = pts[i], p2 = pts[(i + 1) % N], mx = (cx + p1[0] + p2[0]) / 3, my = (cy + p1[1] + p2[1]) / 3;
-    const dx0 = mx - cx, dy0 = my - cy, L = Math.hypot(dx0, dy0) || 1, sp = 110 + Math.random() * 170;
-    const dx = dx0 / L * sp, dy = dy0 / L * sp, rot = (Math.random() - .5) * 900;
+    const dx0 = mx - cx, dy0 = my - cy, L = Math.hypot(dx0, dy0) || 1, sp = 150 + Math.random() * 160;
+    const dx = dx0 / L * sp, dy = dy0 / L * sp, rot = (Math.random() - .5) * 720;
     const el = fx('fx-shard', html, {left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px',
-      clipPath: `polygon(${cx}% ${cy}%, ${p1[0]}% ${p1[1]}%, ${p2[0]}% ${p2[1]}%)`}, 1500);
-    el.animate([{translate: '0 0', rotate: '0deg', opacity: 1},
-      {translate: `${dx * .6}px ${dy * .6 - 50}px`, rotate: `${rot * .45}deg`, opacity: 1, offset: .42},
-      {translate: `${dx}px ${dy + 190}px`, rotate: `${rot}deg`, opacity: 0}], {duration: 1350, easing: 'cubic-bezier(.15,.7,.4,1)', fill: 'forwards'});
+      clipPath: `polygon(${cx}% ${cy}%, ${p1[0]}% ${p1[1]}%, ${p2[0]}% ${p2[1]}%)`}, 2200);
+    el.animate([{translate: '0 0', rotate: '0deg', scale: 1, opacity: 1},
+      {translate: `${dx0 / L * 10}px ${dy0 / L * 10}px`, rotate: '0deg', scale: 1.25, opacity: 1, offset: .12},
+      {translate: `${dx * .6}px ${dy * .6 - 60}px`, rotate: `${rot * .45}deg`, scale: 1.25, opacity: 1, offset: .5},
+      {translate: `${dx}px ${dy + 220}px`, rotate: `${rot}deg`, scale: 1.1, opacity: 0}], {duration: 2000, easing: 'cubic-bezier(.2,.6,.4,1)', fill: 'forwards'});
   }
 }
+const PIECE_CRACK = `<svg class="pcrack" viewBox="0 0 100 100" preserveAspectRatio="none"><path pathLength="100" d="M50 52 L38 30 L30 6 M50 52 L66 34 L88 18 M50 52 L74 60 L97 72 M50 52 L58 76 L62 98 M50 52 L36 70 L12 88 M50 52 L26 50 L3 36"/></svg>`;
+// Galaxy Impact: own piece hidden, the target trembles, cracks and bursts; the attacker appears only after the dust settles
 async function fxGalaxy(from, to){
-  const a = cellCenter(from), b = cellCenter(to); if (!a || !b) return;
-  const dark = fx('fx-dark', '', {}, 7000);
-  const atk = cloneOf(from), tgt = cloneOf(to), tgtHtml = tgt?.innerHTML || '';
-  await cutin();
-  atk?.classList.add('rise');
-  await wait(450);
-  fx('fx-converge', '', {left: a.x + 'px', top: (a.y - a.h * 1.4) + 'px'}, 750);
-  await wait(450);
-  atk?.classList.add('haki');
+  const b = cellCenter(to); if (!b) return;
+  document.querySelectorAll(`.cell[data-sq="${from}"] > *`).forEach(e => e.style.visibility = 'hidden');
+  const dark = fx('fx-dark', '', {}, 9000);
+  const tgt = cloneOf(to), tgtHtml = tgt?.innerHTML || '';
+  await cutin('impact');
+  fx('fx-converge', '', {left: b.x + 'px', top: b.y + 'px'}, 750);
+  tgt?.classList.add('tremble');
   SFX.crackle();
-  for (let k = 0; k < 14; k++) setTimeout(() => redBolt({x: a.x + (Math.random() - .5) * 140, y: a.y - a.h * 1.4 + (Math.random() - .5) * 110}, 90 + Math.random() * 100), k * 80);
-  await wait(1050);
+  for (let k = 0; k < 14; k++) setTimeout(() => redBolt({x: b.x + (Math.random() - .5) * 150, y: b.y + (Math.random() - .5) * 120}, 90 + Math.random() * 100), k * 80);
+  await wait(1100);
   const fist = fx('fx-fist', FIST, {left: b.x + 'px', top: (b.y + b.h * .4) + 'px'}, 900);
   await wait(290);
-  tgt?.classList.add('squash');
-  await wait(120);
+  if (tgt){ tgt.classList.remove('tremble'); tgt.insertAdjacentHTML('beforeend', PIECE_CRACK); }
+  noise(.15, 3000, 1, 2, 'highpass');
+  await wait(420);
   SFX.boom();
   fist.classList.add('gone');
   tgt?.remove();
@@ -2105,9 +2145,15 @@ async function fxGalaxy(from, to){
   particles(b); crack(b);
   banner('ギャラクシーインパクト！！', 'red', {x: b.x, y: Math.max(50, b.y - b.h * 1.4)});
   const table = document.querySelector('.table'); table?.classList.remove('shake'); void table?.offsetWidth; table?.classList.add('shake');
-  await wait(900);
+  await wait(2000);
   dark.classList.add('out');
-  atk?.remove();
+  await wait(350);
+  S.postFx = () => {
+    document.querySelector(`.cell[data-sq="${to}"] .pc`)?.animate(
+      [{scale: .2, opacity: 0, filter: 'brightness(3) drop-shadow(0 0 12px #ff3b2f)'}, {scale: 1.3, opacity: 1, offset: .6}, {scale: 1, opacity: 1, filter: 'none'}],
+      {duration: 650, easing: 'cubic-bezier(.2,1.4,.4,1)'});
+    ring(to, '#FF3B2F');
+  };
 }
 async function fxGigaSpin(from, sqs){
   const pc = document.querySelector(`.cell[data-sq="${from}"] .pc`);
@@ -2234,16 +2280,17 @@ document.addEventListener('mouseover', e => {
   if (c && box && !S.itemPick) box.textContent = `${I.INFO[c.dataset.item].name}：${I.INFO[c.dataset.item].desc}`;
 });
 document.addEventListener('change', e => {
-  if (e.target.id !== 'cutinFile' || !e.target.files?.[0]) return;
+  if (!e.target.id?.startsWith('cutinFile-') || !e.target.files?.[0]) return;
+  const key = e.target.id.slice(10);
   const img = new Image(), url = URL.createObjectURL(e.target.files[0]);
   img.onload = () => {
-    const k = Math.min(1, 1400 / img.width), cv = document.createElement('canvas');
+    const k = Math.min(1, 1100 / img.width), cv = document.createElement('canvas');
     cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
     cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
     URL.revokeObjectURL(url);
-    const data = cv.toDataURL('image/jpeg', .82);
-    lsSet('cutin', data); lsSet('cutinWide', img.width / img.height > 1.2);
-    toast(lsGet('cutin', null) ? 'カットイン画像を設定しました（このパソコンだけ）' : '画像が大きすぎて保存できませんでした');
+    const data = cv.toDataURL('image/jpeg', .8);
+    lsSet('cutin.' + key, {d: data, w: img.width / img.height > 1.2});
+    toast(cutinImg(key) ? `${I.INFO[key].name}のカットイン画像を設定しました（このパソコンだけ）` : '保存できませんでした。ほかの画像を減らすか、小さい画像にしてください');
     render();
   };
   img.onerror = () => toast('この画像は読み込めませんでした');
@@ -2252,7 +2299,29 @@ document.addEventListener('change', e => {
 document.addEventListener('input', e => {
   if (e.target.id === 'nameInput'){ S.myName = e.target.value.slice(0, 20); lsSet('name', S.myName); }
 });
+function runCommand(raw){
+  const c = raw.trim().replace(/^\//, '').toLowerCase();
+  if (c === 'items' || c === 'item'){
+    S.cheat = !S.cheat; lsSet('cheat', S.cheat);
+    toast(S.cheat ? 'アイテム使い放題：ON（このパソコンだけ。自分の番にどのカードでも使えます）' : 'アイテム使い放題：OFF');
+  } else if (c === 'help') toast('コマンド：items（アイテム使い放題のON/OFF）');
+  else if (c) toast(`「${c}」というコマンドはありません（help で一覧）`);
+  closeCmd(); render();
+}
+function openCmd(){
+  if ($('#cmdbar')) return;
+  const d = document.createElement('div'); d.className = 'cmdbar'; d.id = 'cmdbar';
+  d.innerHTML = '<span>/</span><input id="cmdInput" autocomplete="off" spellcheck="false" placeholder="コマンドを入力（help）">';
+  document.body.appendChild(d); $('#cmdInput').focus();
+}
+function closeCmd(){ $('#cmdbar')?.remove(); }
 document.addEventListener('keydown', e => {
+  if (e.target.id === 'cmdInput'){
+    if (e.key === 'Enter'){ e.preventDefault(); runCommand(e.target.value); }
+    else if (e.key === 'Escape') closeCmd();
+    return;
+  }
+  if (e.key === '/' && !e.target.matches?.('input,textarea')){ e.preventDefault(); openCmd(); return; }
   if (e.target.matches?.('input')){ if (e.key === 'Enter' && e.target.id === 'codeInput') $('[data-act="join-code"]')?.click(); return; }
   if (S.modal && e.key === 'Escape'){ S.modal = null; render(); return; }
   if (S.view !== 'game') return;
@@ -2293,8 +2362,8 @@ document.addEventListener('click', e => {
     case 'lobby': backToLobby(); break;
     case 'rules': S.modal = 'rules'; render(); break;
     case 'close-modal': S.modal = null; render(); break;
-    case 'cutin-test': S.modal = null; render(); cutin(); break;
-    case 'cutin-clear': try { localStorage.removeItem(LS + 'cutin'); } catch {} toast('標準のカットインに戻しました'); render(); break;
+    case 'cutin-test': S.modal = null; render(); cutin(b.dataset.k); break;
+    case 'cutin-clear': try { localStorage.removeItem(LS + 'cutin.' + b.dataset.k); } catch {} toast('標準のカットインに戻しました'); render(); break;
     case 'flip': S.manualFlip = !S.manualFlip; render(); break;
     case 'first': setPly(0); break;
     case 'prev': setPly((S.viewPly ?? n) - 1); break;
