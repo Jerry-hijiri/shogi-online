@@ -336,7 +336,7 @@ button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px so
 .fx-banner.white{color:#fff;-webkit-text-stroke-color:#3b5a85}
 
 /* ROOM */
-.room-dome{position:absolute;width:calc(var(--cw) * 5.3);height:calc(var(--ch) * 5.3);transform:translate(-50%,-50%);border-radius:50%;pointer-events:none;z-index:6;
+.room-dome{position:absolute;width:calc(var(--cw) * 14);height:calc(var(--ch) * 14);transform:translate(-50%,-50%);border-radius:50%;pointer-events:none;z-index:6;
   background:radial-gradient(circle at 38% 30%,rgba(255,255,255,.45),rgba(170,235,255,.22) 22%,rgba(110,210,255,.16) 55%,rgba(90,200,255,.34) 69%,rgba(90,200,255,0) 71%);
   box-shadow:0 0 26px 4px rgba(110,215,255,.45),inset 0 0 36px 6px rgba(170,235,255,.45);border:2px solid rgba(160,235,255,.85);animation:domepulse 2.4s ease-in-out infinite}
 .room-dome i{position:absolute;inset:6%;border-radius:50%;border:2px dashed rgba(190,240,255,.7);animation:spin 14s linear infinite}
@@ -749,7 +749,7 @@ const ItemShogi = (() => {
     impact: {name:'拳骨衝突（ギャラクシーインパクト）', short:'拳骨衝突', need:'own', desc:'理外の覇気が盤面を穿つ！ 自分の駒1枚に覇気を纏わせる。その駒が次に相手の駒を取ると、その駒を粉砕する。粉砕された駒は持ち駒にならず墓地へ送られ、二度と使えない（仕込みカードも貫通）。'},
     shimon: {name:'八門遁甲の陣（死門）', short:'死門', need:'own', desc:'己の掟を貫き通す奥義。自分の銀・金・桂・香・飛・角（成っていない駒）1枚が死門を開き、ワインレッドに染まる。このターン、その駒は駒を飛び越えて盤上のどのマスへも一気に移動できる。進んだ道と移動先の駒は敵味方問わずすべて炭化して墓地へ。最後に自分の駒も炭化して消える（玉は炭化せず、玉のマスへは移動できない）。'},
     zaoriku:{name:'ザオリク', short:'ザオリク', need:null, passive:true, desc:'持っているだけで効く復活の呪文。詰んだとき、または玉を取られたときに自動で唱え、玉が亡霊として復活する（詰みならその場、取られたら自陣の初期位置かその近くの空きマス）。亡霊の玉は持ち主の次の2回の番が終わるまで取られない。1回でなくなる。'},
-    room:   {name:'ROOM・シャンブルズ', short:'ROOM', need:'own', desc:'自分の駒1枚を中心に、周囲2マス（5×5）へ水色のドーム「ROOM」を張る。ドームの中の駒を2つ選ぶと、敵味方問わず一瞬で位置を入れ替える（シャンブルズ）。入れ替えがその番の1手になる。発のオーラを纏った相手の駒は入れ替えられない。'},
+    room:   {name:'ROOM・シャンブルズ', short:'ROOM', need:'own', desc:'自分の駒1枚から盤全体へ水色のドーム「ROOM」を張る。盤上のどこでも、玉以外の駒を2つ選ぶと、敵味方問わず一瞬で位置を入れ替える（シャンブルズ）。入れ替えがその番の1手になる。発のオーラを纏った相手の駒は入れ替えられない。'},
   };
   const SHIMON_OK = ['S','G','N','L','R','B'];
   const HAND_MAX = 3, BOX_MAX = 2;
@@ -844,11 +844,13 @@ const ItemShogi = (() => {
     const s = st.turn, b = st.board, T = st.T, out = [];
     const ok = mv => { if (inDanger(simBoard(st, mv), s, T+1)) return false; out.push(mv); return true; };
     if (st.room != null){
-      // inside ROOM the only move is Shambles: swap two pieces in the dome
-      const qs = [];
-      for (let q=0;q<81;q++){ const p = b[q]; if (p && inRoom(st.room, q) && !(p.s !== s && p.aura)) qs.push(q); }
+      // inside ROOM the only move is Shambles: swap any two non-king pieces on the board.
+      // Games from before this rule (mushGuard = rule version 1) also keep the old 5x5 swaps, kings included, so their logs still replay.
+      const qs = [], old = q => st.mushGuard && inRoom(st.room, q);
+      for (let q=0;q<81;q++){ const p = b[q]; if (p && (p.t !== 'K' || old(q)) && !(p.s !== s && p.aura)) qs.push(q); }
       for (let i=0;i<qs.length;i++) for (let j=i+1;j<qs.length;j++){
         const x = b[qs[i]], y = b[qs[j]];
+        if ((x.t === 'K' || y.t === 'K') && !(old(qs[i]) && old(qs[j]))) continue;
         if (x.s === y.s && x.t === y.t && x.p === y.p) continue;
         if (ok({swap:[qs[i], qs[j]]}) && firstOnly) return out;
       }
@@ -2063,7 +2065,7 @@ function renderGame(){
   else if (inf.mySide === latest.turn){ big = 'あなたの番です'; small = `あなたは${MARK[inf.mySide]}${SIDE[inf.mySide]}`; }
   else { big = '相手の考慮中…'; small = `あなたは${MARK[inf.mySide]}${SIDE[inf.mySide]}`; }
   if (item && !inf.result && latest.dual) small = `二刀流：${MARK[latest.turn]}あと${2 - latest.moved}手（持ち駒は打てません）`;
-  if (item && !inf.result && latest.room != null) small = 'ROOM展開中：ドームの中の駒を2つ選ぶと入れ替えます（シャンブルズ）';
+  if (item && !inf.result && latest.room != null) small = 'ROOM展開中：玉以外の駒を2つ選ぶと入れ替えます（シャンブルズ）';
   if (item && !inf.result && latest.shimon) small = '死門：開いた駒をどのマスへでも動かせます。進んだ道の駒はすべて炭化します';
   if (S.pending) small = '送信中…';
   if (S.netDown) small = '通信が切れています。自動で再接続します…';
@@ -2638,10 +2640,10 @@ async function demoRun(item, tok){
       await cutin('shimon'); pcs[12].shimon = 0; st.shimon = true; draw(); SFX.charge(); await pause(1300);
       await fxShimon('d12', 'd2', ['d7', 'd2']); st.shimon = false; delete pcs[12]; delete pcs[7]; delete pcs[2]; draw(); await pause(800); break;
     case 'room':
-      pcs = {12: own('S'), 7: own('P'), 1: en('R'), 3: en('G')}; draw(); await pause(500);
+      pcs = {12: own('S'), 10: own('P'), 4: en('R'), 3: en('G')}; draw(); await pause(500);
       await cutin('room'); room = 12; draw(); document.querySelector('#demoGrid .room-dome')?.classList.add('grow'); tone(220, 1.2, 'sine', .1, 660); await pause(1500);
-      for (const q of [7, 1]){ document.querySelector(`#demoGrid .cell[data-sq="d${q}"]`)?.classList.add('sel'); await pause(450); }
-      await fxShambles('d7', 'd1', 'd12'); room = null; [pcs[7], pcs[1]] = [pcs[1], pcs[7]]; draw(); S.postFx?.(); S.postFx = null; await pause(1000); break;
+      for (const q of [10, 4]){ document.querySelector(`#demoGrid .cell[data-sq="d${q}"]`)?.classList.add('sel'); await pause(450); }
+      await fxShambles('d10', 'd4', 'd12'); room = null; [pcs[10], pcs[4]] = [pcs[4], pcs[10]]; draw(); S.postFx?.(); S.postFx = null; await pause(1000); break;
     case 'zaoriku':
       pcs = {12: own('K'), 2: en('R')}; draw(); await pause(600);
       await move(2, 12); banner('玉が取られた…', 'small'); await pause(700);
@@ -2960,14 +2962,12 @@ function runCommand(raw){
     else { S.noBoxQueued = S.local ? 'local' : S.gameId; toast(canAct() ? '？ボックスを無しにしました（相手には表示されません）' : '自分の番になったら？ボックスを無しにします（相手には表示されません）'); closeCmd(); applyNoBox(); return; }
   }
   else if (['kingbombee', 'kingbonbee', 'kingbonby', 'bombee', 'キングボンビー'].includes(c)) sendFun('kb');
-  else if (c === 'help') toast('コマンド：items（カード戦のON/OFF）、noitem（？ボックスを無しに）、destroy（相手の持ち札を全て破壊）、unko、fuckyou、kingbombee');
-  else if (c) toast(`「${c}」というコマンドはありません（help で一覧）`);
   closeCmd(); render();
 }
 function openCmd(){
   if ($('#cmdbar')) return;
   const d = document.createElement('div'); d.className = 'cmdbar'; d.id = 'cmdbar';
-  d.innerHTML = '<span>/</span><input id="cmdInput" autocomplete="off" spellcheck="false" placeholder="コマンドを入力（help）">';
+  d.innerHTML = '<span>/</span><input id="cmdInput" autocomplete="off" spellcheck="false" placeholder="">';
   document.body.appendChild(d); $('#cmdInput').focus();
 }
 function closeCmd(){ $('#cmdbar')?.remove(); }
