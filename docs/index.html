@@ -200,6 +200,23 @@ button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px so
 .rule-item b{display:block}
 .rule-item span{color:var(--muted);font-size:13px}
 
+/* equipment drawn around a piece (arms, swords); rotates with the piece */
+.deco{position:absolute;left:-50%;top:-15%;width:200%;height:129%;overflow:visible;pointer-events:none;z-index:3}
+.deco.grow{animation:grow .7s cubic-bezier(.2,1.6,.4,1) both}
+@keyframes grow{from{scale:.15;opacity:0}to{scale:1;opacity:1}}
+.deco .glow{animation:bladeglow 1.1s ease-in-out infinite}
+@keyframes bladeglow{0%,100%{filter:drop-shadow(0 0 3px #7FE3FF) drop-shadow(0 0 7px #3DB8FF)}50%{filter:drop-shadow(0 0 7px #fff) drop-shadow(0 0 16px #3DB8FF)}}
+.aura.nen{width:118%;height:118%;border-radius:45% 45% 40% 40%;background:radial-gradient(ellipse at 50% 60%,rgba(255,120,200,.9),rgba(214,80,255,.55) 45%,transparent 70%);filter:blur(3px);animation:nenflame 1.2s ease-in-out infinite}
+@keyframes nenflame{0%,100%{scale:1 1}30%{scale:1.06 1.14}60%{scale:.97 1.05}}
+.aura.haki{width:116%;height:116%;background:radial-gradient(circle,rgba(10,0,0,.85),rgba(60,0,0,.55) 45%,transparent 70%);box-shadow:0 0 14px 2px rgba(255,30,30,.55);animation:hakipulse .45s steps(2) infinite}
+@keyframes hakipulse{50%{box-shadow:0 0 22px 5px rgba(255,40,20,.85)}}
+.gumlayer{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:7;overflow:visible}
+.gumlayer path{fill:none;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.gum-controls{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+.gum-controls .lbl{grid-column:1/-1;font-size:12px;font-weight:900;color:#C2328A}
+.gum-controls .btn.on{background:#FFD3EC;border-color:#E0569F}
+.cell.tgt.gumt::before{box-shadow:0 0 0 3px #FF6FB5,0 0 14px #FF6FB5}
+
 /* sidebar */
 .panel{display:flex;flex-direction:column;gap:12px;min-width:0}
 .status{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 16px}
@@ -208,7 +225,7 @@ button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px so
 .status .check{display:inline-block;margin-left:8px;color:#fff;background:var(--danger);border-radius:6px;padding:0 8px;font-size:13px;vertical-align:2px}
 .items{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px 12px}
 .items .head{display:flex;justify-content:space-between;align-items:center;font-weight:900;margin-bottom:8px}
-.cardgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.cardgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .icard{border:1px solid var(--line);border-radius:12px;background:var(--surface-2);padding:7px 3px 5px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;font-weight:700;line-height:1.2;text-align:center;transition:translate .15s,border-color .15s}
 .icard svg{width:36px;height:36px}
 .icard:hover:not(:disabled){border-color:var(--accent);translate:0 -2px}
@@ -240,6 +257,8 @@ button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px so
 .fx-banner{transform:translate(-50%,-50%);font:900 36px var(--f-ui);color:#fff;-webkit-text-stroke:7px #2a1608;paint-order:stroke fill;white-space:nowrap;text-align:center;animation:bannerpop 1.5s cubic-bezier(.2,1.4,.4,1) forwards}
 .fx-banner.gold{color:#FFD84A}
 .fx-banner.blue{color:#9BE7FF}
+.fx-banner.pink{color:#FF8FCB}
+.fx-banner.red{color:#FF3B2F;-webkit-text-stroke-color:#120000}
 .fx-banner.small{font-size:24px;-webkit-text-stroke:5px #2a1608}
 @keyframes bannerpop{0%{scale:.3;opacity:0}15%{scale:1.12;opacity:1}25%{scale:1}80%{opacity:1}100%{opacity:0;scale:1.04}}
 .fx-bolt{animation:boltflick .7s steps(1) forwards}
@@ -267,6 +286,38 @@ button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px so
 .fx-roulette .slot svg{width:70px;height:70px}
 .fx-roulette .slot b{font-size:48px;color:#FFD43B}
 @keyframes roul{0%{scale:.4;opacity:0}10%{scale:1.05;opacity:1}18%{scale:1}85%{opacity:1}100%{opacity:0}}
+/* galaxy impact */
+.fx-dark{inset:0;background:radial-gradient(circle at 50% 45%,rgba(40,0,0,.35),rgba(8,0,0,.82));opacity:0;animation:darkin .7s ease-out forwards}
+.fx-dark.out{animation:darkout .9s ease-out forwards}
+@keyframes darkin{to{opacity:1}}
+@keyframes darkout{from{opacity:1}to{opacity:0}}
+.fx-clone{z-index:85;display:grid;place-items:center}
+.fx-clone .pc{transition:none}
+.fx-clone.rise .pc{animation:rise .8s cubic-bezier(.2,.8,.3,1) forwards}
+@keyframes rise{to{translate:0 -135%;scale:1.4}}
+.fx-clone.haki .pc{filter:drop-shadow(0 0 4px #000) drop-shadow(0 0 12px #ff1a1a) brightness(.3) contrast(1.4)}
+.fx-clone.squash .pc{animation:squash .18s ease-in forwards}
+@keyframes squash{to{scale:1.5 .25;translate:0 30%}}
+.fx-converge{z-index:84;transform:translate(-50%,-50%);border-radius:50%;width:320px;height:320px;
+  background:radial-gradient(circle,transparent 30%,rgba(0,0,0,.9) 55%,transparent 72%);animation:converge .7s ease-in forwards}
+@keyframes converge{from{scale:1.3;opacity:0}40%{opacity:1}to{scale:.18;opacity:.9}}
+.fx-redbolt{z-index:86;animation:boltflick .3s steps(1) forwards}
+.fx-redbolt path{fill:none;stroke-linejoin:round;stroke-linecap:round}
+.fx-fist{z-index:87;transform:translate(-50%,-100%);width:230px;height:230px;animation:fist .3s cubic-bezier(.6,0,1,1) forwards}
+@keyframes fist{from{translate:0 -320px;scale:.5;opacity:0}60%{opacity:.85}to{translate:0 30px;scale:1.15;opacity:.9}}
+.fx-fist.gone{animation:fistout .35s ease-out forwards}
+@keyframes fistout{from{opacity:.9}to{opacity:0;scale:1.4}}
+.fx-shock{z-index:86;transform:translate(-50%,-50%);border-radius:50%;border:10px solid rgba(255,60,40,.85);box-shadow:0 0 40px 10px rgba(255,40,20,.6);animation:shock .6s ease-out forwards}
+@keyframes shock{from{width:20px;height:20px;opacity:1}to{width:520px;height:520px;opacity:0}}
+.fx-crack{z-index:79;animation:crackfade 3.4s ease-in forwards}
+.fx-crack path{fill:none;stroke-linejoin:round;stroke-linecap:round}
+@keyframes crackfade{0%,60%{opacity:1}100%{opacity:0}}
+.fx-canvas{inset:0;z-index:88}
+.shake{animation:shake .65s linear}
+@keyframes shake{10%{translate:-14px 6px}20%{translate:12px -8px}30%{translate:-10px -6px}40%{translate:9px 8px}50%{translate:-7px 3px}60%{translate:6px -4px}70%{translate:-4px 3px}80%{translate:3px -2px}90%{translate:-1px 1px}}
+.hit{animation:hit .45s ease-out}
+@keyframes hit{0%{filter:brightness(2) sepia(1) hue-rotate(-40deg) saturate(6)}30%{translate:-6px 0}60%{translate:5px 0}100%{translate:0 0}}
+
 @media (prefers-reduced-motion: reduce){
   .flash,.fx-flash,.fx-bolt,.fx-spark,.fx-rays,.fx-swords,.fx-slash{animation:none;display:none}
   .pc{transition:none}.pc.float,.pc.star,.ibox,.aura{animation:none}
@@ -524,16 +575,19 @@ const Shogi = (() => {
 
 // Item battle: the same board plus item boxes, cards and piece effects.
 // Every random draw comes from a seeded generator, so replaying the action list gives every client the same game.
+// Actions: USI moves, "@item[:sq]" card use, "~a:sq" / "~d" / "~c" Bungee Gum attach / detach / contract.
 const ItemShogi = (() => {
   const B = Shogi;
-  const ITEMS = ['dual','star','giga','mush','volt','ge'];
+  const ITEMS = ['dual','star','giga','mush','volt','ge','hatsu','impact'];
   const INFO = {
-    dual: {name:'二刀流', need:null, desc:'このターンは2回続けて指せる。そのかわり持ち駒は打てない。'},
-    star: {name:'スター', need:'own', desc:'自分の駒1枚が、このターンだけ全方向に1マス動けるようになる。'},
-    giga: {name:'ギガスラッシュ', need:null, desc:'次に相手の駒を取ったとき、取った駒の左右に並ぶ相手の駒もまとめて取る（玉は斬れない）。'},
-    mush: {name:'きのこ', need:'own', desc:'自分の駒1枚が大きくなる。取られそうになったら1回だけ弾き返し、元の大きさに戻る。'},
-    volt: {name:'10万ボルト', need:'enemy', desc:'相手の駒1枚に雷を落とす。相手の次の番、その駒は動けない。'},
-    ge:   {name:'ゴールド・エクスペリエンス', need:'own', desc:'仕込みカード。自分の駒（玉以外）の裏に伏せておく。その駒が取られそうになると発動し、金のオーラで宙に浮いて相手の次の番まで取られない。'},
+    dual:   {name:'二刀流', short:'二刀流', need:'own', desc:'自分の駒1枚から手が生え、剣を2本装備する。このターン、その駒を2回続けて動かせる（持ち駒は打てない）。'},
+    star:   {name:'スター', short:'スター', need:'own', desc:'自分の駒1枚が、このターンだけ全方向に1マス動けるようになる。'},
+    giga:   {name:'ギガスラッシュ', short:'ギガスラッシュ', need:'own', desc:'自分の駒1枚が右手に光る剣を構える。その駒が次に相手の駒を取ると、回転斬りで左右に並ぶ相手の駒もまとめて斬る（玉は斬れない）。'},
+    mush:   {name:'きのこ', short:'きのこ', need:'own', desc:'自分の駒1枚が大きくなる。取られそうになったら1回だけ弾き返し、元の大きさに戻る。'},
+    volt:   {name:'10万ボルト', short:'10万ボルト', need:'enemy', desc:'相手の駒1枚に雷を落とす。相手の次の番、その駒は動けない。'},
+    ge:     {name:'ゴールド・エクスペリエンス', short:'ゴールドE', need:'own', desc:'仕込みカード。自分の駒（玉以外）の裏に伏せておく。その駒が取られそうになると発動し、金のオーラで宙に浮いて相手の次の番まで取られない。'},
+    hatsu:  {name:'発（バンジーガム）', short:'発', need:'own', desc:'自分の駒1枚がオーラを纏い、バンジーガムが使えるようになる。ガムを2か所（駒かマス）につけて縮めると、2つ目につけた駒が1つ目の方へ引き寄せられる。縮めるとその番の1手になる。つける・はずすは自由。'},
+    impact: {name:'拳骨衝突（ギャラクシーインパクト）', short:'拳骨衝突', need:'own', desc:'理外の覇気が盤面を穿つ！ 自分の駒1枚に覇気を纏わせる。その駒が次に相手の駒を取ると、その駒を粉砕する。粉砕された駒は持ち駒にならず、ゲームから消える（きのこ・仕込みカードも貫通）。'},
   };
   const HAND_MAX = 3, BOX_MAX = 2;
   const KING_D = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
@@ -552,13 +606,15 @@ const ItemShogi = (() => {
   }
   function init(seed){
     const p = B.parseSfen(B.START);
-    const st = {board:p.board, hands:p.hands, turn:0, T:0, moved:0, cardUsed:false, dual:false, giga:[false,false],
-      cards:[[],[]], boxes:[], rng:(seed >>> 0) || 1, ply:0, lastTo:-1, lastFrom:-1, result:null};
+    p.board.forEach((pc, i) => { if (pc) pc.id = i + 1; });
+    const st = {board:p.board, hands:p.hands, turn:0, T:0, moved:0, cardUsed:false, dual:false, nid:100,
+      cards:[[],[]], boxes:[], gum:[[],[]], crushed:[[],[]], rng:(seed >>> 0) || 1, ply:0, lastTo:-1, lastFrom:-1, result:null};
     spawnBox(st); spawnBox(st);
     return st;
   }
   const clone = st => ({...st, board: st.board.map(p => p && {...p}), hands:[{...st.hands[0]}, {...st.hands[1]}],
-    giga:[...st.giga], cards:[[...st.cards[0]], [...st.cards[1]]], boxes:[...st.boxes]});
+    cards:[[...st.cards[0]], [...st.cards[1]]], boxes:[...st.boxes], gum:[st.gum[0].map(x => ({...x})), st.gum[1].map(x => ({...x}))],
+    crushed:[[...st.crushed[0]], [...st.crushed[1]]]});
   const floating = (pc, T) => pc.float != null && pc.float >= T;
 
   function targetsOf(board, sq, T){
@@ -594,7 +650,7 @@ const ItemShogi = (() => {
     const b = st.board.slice(), s = st.turn;
     if (mv.drop){ b[mv.to] = {t:mv.drop, s, p:false}; return b; }
     const pc = b[mv.from], tg = b[mv.to];
-    if (tg && tg.mush) return b;
+    if (tg && tg.mush && !pc.impact) return b;
     b[mv.to] = mv.promote ? {...pc, p:true} : pc; b[mv.from] = null;
     return b;
   }
@@ -604,6 +660,7 @@ const ItemShogi = (() => {
     const ok = mv => { if (inDanger(simBoard(st, mv), s, T+1)) return false; out.push(mv); return true; };
     for (let i=0;i<81;i++){
       const pc = b[i]; if (!pc || pc.s !== s || pc.frozen === T) continue;
+      if (st.dual && pc.dual !== T) continue;
       for (const t of targetsOf(b, i, T)){
         if (B.canPromote(pc, i, t) && ok({from:i, to:t, promote:true}) && firstOnly) return out;
         if (!B.mustPromote(pc, t) && ok({from:i, to:t, promote:false}) && firstOnly) return out;
@@ -633,12 +690,17 @@ const ItemShogi = (() => {
   function itemTargets(st, item){
     const s = st.turn, need = INFO[item].need, out = [];
     if (!need) return out;
+    const movers = item === 'dual' ? new Set(legal(st).filter(m => !m.drop).map(m => m.from)) : null;
     for (let i=0;i<81;i++){
       const p = st.board[i]; if (!p) continue;
       if (need === 'own' && p.s === s){
         if (item === 'ge' && (p.t === 'K' || p.trap)) continue;
         if (item === 'mush' && p.mush) continue;
         if (item === 'star' && (p.frozen === st.T || p.star === st.T)) continue;
+        if (item === 'giga' && p.giga) continue;
+        if (item === 'impact' && p.impact) continue;
+        if (item === 'hatsu' && p.aura) continue;
+        if (item === 'dual' && !movers.has(i)) continue;
         out.push(i);
       }
       if (need === 'enemy' && p.s !== s) out.push(i);
@@ -648,41 +710,117 @@ const ItemShogi = (() => {
   function canUse(st, item, free){
     if (st.result || st.cardUsed || st.moved > 0 || !INFO[item]) return false;
     if (!free && !st.cards[st.turn].includes(item)) return false;
-    if (item === 'giga' && st.giga[st.turn]) return false;
     if (INFO[item].need && !itemTargets(st, item).length) return false;
     return true;
   }
+
+  /* ----- Bungee Gum ----- */
+  const pieceSq = (board, id) => { for (let i=0;i<81;i++) if (board[i] && board[i].id === id) return i; return -1; };
+  const hasAura = (board, s) => board.some(p => p && p.s === s && p.aura);
+  const auraSq = (board, s) => board.findIndex(p => p && p.s === s && p.aura);
+  const gumSquares = (st, s) => st.gum[s].map(p => p.pid != null ? pieceSq(st.board, p.pid) : p.sq);
+  function cleanGum(n){
+    for (const s of [0, 1]) if (n.gum[s].length && (!hasAura(n.board, s) || gumSquares(n, s).some(q => q < 0))) n.gum[s] = [];
+  }
+  // where the second gum point is pulled to: onto the first point if it is an empty square, else the nearest free square in front of it
+  function pullDest(st, s){
+    const g = st.gum[s];
+    if (g.length < 2 || g[1].pid == null) return null;
+    const [s1, s2] = gumSquares(st, s), b = st.board;
+    if (s1 < 0 || s2 < 0 || s1 === s2) return null;
+    if (!b[s1]) return {from:s2, to:s1, anchor:s1};
+    const r1 = (s1/9)|0, c1 = s1%9, r2 = (s2/9)|0, c2 = s2%9;
+    const dr = Math.sign(r2 - r1), dc = Math.sign(c2 - c1), maxD = Math.max(Math.abs(r2 - r1), Math.abs(c2 - c1));
+    for (let k = 1; k < maxD; k++){
+      const r = r1 + dr*k, c = c1 + dc*k, q = r*9 + c;
+      if (r < 0 || r > 8 || c < 0 || c > 8 || q === s2) return null;
+      if (!b[q]) return {from:s2, to:q, anchor:s1};
+    }
+    return null;
+  }
+  function canGum(st, op){
+    const s = st.turn;
+    if (st.result || st.moved > 0 || !hasAura(st.board, s)) return false;
+    if (op === 'a') return st.gum[s].length < 2;
+    if (op === 'd') return st.gum[s].length > 0;
+    if (op === 'c'){
+      if (st.dual) return false;
+      const d = pullDest(st, s); if (!d) return false;
+      const b = st.board.slice(); b[d.to] = b[d.from]; b[d.from] = null;
+      return !inDanger(b, s, st.T + 1);
+    }
+    return false;
+  }
+
   function endTurn(n){
     n.turn = 1 - n.turn; n.T++; n.moved = 0; n.cardUsed = false; n.dual = false;
     if (n.T % 2 === 0) spawnBox(n);
   }
   function finish(n){
+    cleanGum(n);
     if (!n.result && !legal(n, true).length)
       n.result = {winner: 1 - n.turn, reason: inDanger(n.board, n.turn, n.T+1) ? 'checkmate' : 'nomoves'};
   }
+  function collectBox(n, sq, owner, ev){
+    const bi = n.boxes.indexOf(sq);
+    if (bi < 0) return '';
+    n.boxes.splice(bi, 1);
+    if (n.cards[owner].length < HAND_MAX){
+      const it = ITEMS[Math.floor(rand(n) * ITEMS.length)];
+      n.cards[owner].push(it); ev.push({type:'box', side:owner, item:it, sq}); return '　＋アイテム';
+    }
+    ev.push({type:'boxlost', sq}); return '';
+  }
+  const pname = pc => B.pieceName(pc);
 
   // Apply one action string. Returns null when the action is not allowed here.
   function act(st, a, free){
     const s = st.turn, T = st.T;
     if (st.result) return null;
+    if (a[0] === '~'){
+      const op = a[1];
+      if (!canGum(st, op)) return null;
+      const n = clone(st);
+      if (op === 'a'){
+        const sq = B.usiToSq(a.slice(3));
+        if (sq < 0 || gumSquares(st, s).includes(sq)) return null;
+        n.gum[s].push(st.board[sq] ? {pid: st.board[sq].id} : {sq});
+        const text = `バンジーガム：つける（${B.sqName(sq)}${st.board[sq] ? pname(st.board[sq]) : ''}）`;
+        return {st:n, ev:[{type:'gumattach', sq, side:s}], text, pub:text, item:true};
+      }
+      if (op === 'd'){
+        n.gum[s] = [];
+        return {st:n, ev:[{type:'gumdetach', side:s, sq: auraSq(st.board, s)}], text:'バンジーガム：はずす', pub:'バンジーガム：はずす', item:true};
+      }
+      const d = pullDest(st, s), b = n.board, pc = b[d.from], ev = [];
+      b[d.to] = pc; b[d.from] = null; n.gum[s] = [];
+      let text = `バンジーガム：縮める（${B.sqName(d.from)}${pname(pc)}→${B.sqName(d.to)}）`;
+      ev.push({type:'gumpull', from:d.from, to:d.to, anchor:d.anchor, pre:true});
+      text += collectBox(n, d.to, pc.s, ev);
+      n.ply++; n.lastTo = d.to; n.lastFrom = d.from; n.moved++;
+      endTurn(n); finish(n);
+      return {st:n, ev, text, pub:text, item:false};
+    }
     if (a[0] === '@'){
       const [item, u] = a.slice(1).split(':');
       if (!canUse(st, item, free)) return null;
       let sq = -1;
       if (INFO[item].need){ sq = B.usiToSq(u || ''); if (!itemTargets(st, item).includes(sq)) return null; }
-      const n = clone(st);
+      const n = clone(st), p = sq >= 0 ? n.board[sq] : null;
       if (!free) n.cards[s].splice(n.cards[s].indexOf(item), 1);
       n.cardUsed = true;
       switch (item){
-        case 'dual': n.dual = true; break;
-        case 'giga': n.giga[s] = true; break;
-        case 'star': n.board[sq].star = T; break;
-        case 'mush': n.board[sq].mush = true; break;
-        case 'volt': n.board[sq].frozen = T + 1; break;
-        case 'ge': n.board[sq].trap = true; break;
+        case 'dual': n.dual = true; p.dual = T; break;
+        case 'giga': p.giga = true; break;
+        case 'star': p.star = T; break;
+        case 'mush': p.mush = true; break;
+        case 'volt': p.frozen = T + 1; break;
+        case 'ge': p.trap = true; break;
+        case 'hatsu': p.aura = true; break;
+        case 'impact': p.impact = true; break;
       }
       if (!legal(n, true).length) return null; // never let a card leave you without a move
-      const where = sq >= 0 ? `（${B.sqName(sq)}${B.pieceName(st.board[sq])}）` : '';
+      const where = sq >= 0 ? `（${B.sqName(sq)}${pname(st.board[sq])}）` : '';
       const text = INFO[item].name + (item === 'volt' ? ' →' + where : where);
       return {st:n, ev:[{type:item, sq, side:s}], text, pub: item === 'ge' ? 'カードを伏せた' : text, item:true};
     }
@@ -690,20 +828,27 @@ const ItemShogi = (() => {
     if (!mv) return null;
     const n = clone(st), b = n.board, ev = [];
     let text = B.moveName(st, mv, st.lastTo), arrived = true;
-    if (mv.drop){ b[mv.to] = {t:mv.drop, s, p:false}; n.hands[s][mv.drop]--; }
+    if (mv.drop){ b[mv.to] = {t:mv.drop, s, p:false, id:n.nid++}; n.hands[s][mv.drop]--; }
     else {
       const pc = b[mv.from], tg = b[mv.to];
-      if (tg && tg.mush){
+      if (tg && !pc.impact && tg.mush){
         tg.mush = false; arrived = false;
         ev.push({type:'bounce', sq:mv.to}); text += '（きのこで弾かれた）';
-      } else if (tg && tg.trap){
+      } else if (tg && !pc.impact && tg.trap){
         tg.trap = false; tg.float = T + 2; arrived = false;
         ev.push({type:'geon', sq:mv.to}); text += '（ゴールド・エクスペリエンス発動）';
       } else {
-        if (tg){ if (tg.t === 'K') n.result = {winner:s, reason:'kingcapture'}; else n.hands[s][tg.t]++; }
-        b[mv.to] = mv.promote ? {...pc, p:true} : pc; b[mv.from] = null;
-        if (tg && tg.t !== 'K' && n.giga[s]){
-          n.giga[s] = false;
+        const crush = !!(tg && pc.impact);
+        if (tg){
+          if (tg.t === 'K') n.result = {winner:s, reason:'kingcapture'};
+          else if (crush) n.crushed[s].push(tg.t);
+          else n.hands[s][tg.t]++;
+        }
+        const moved = mv.promote ? {...pc, p:true} : pc;
+        b[mv.to] = moved; b[mv.from] = null;
+        if (crush){ moved.impact = false; ev.push({type:'gi', from:mv.from, to:mv.to, pre:true}); text += '（拳骨衝突で粉砕）'; }
+        if (tg && tg.t !== 'K' && moved.giga){
+          moved.giga = false;
           const r = (mv.to/9)|0, c = mv.to%9, hit = [mv.to];
           for (const dc of [-1, 1]){
             const cc = c + dc; if (cc < 0 || cc > 8) continue;
@@ -714,25 +859,16 @@ const ItemShogi = (() => {
             else { n.hands[s][qp.t]++; b[q] = null; }
             hit.push(q);
           }
-          ev.unshift({type:'slash', sqs:hit}); text += '（ギガスラッシュ）';
+          ev.push({type:'gigaspin', from:mv.from, to:mv.to, sqs:hit, pre:true}); text += '（ギガスラッシュ）';
         }
       }
     }
-    if (arrived){
-      const bi = n.boxes.indexOf(mv.to);
-      if (bi >= 0){
-        n.boxes.splice(bi, 1);
-        if (n.cards[s].length < HAND_MAX){
-          const it = ITEMS[Math.floor(rand(n) * ITEMS.length)];
-          n.cards[s].push(it); ev.push({type:'box', side:s, item:it, sq:mv.to}); text += '　＋アイテム';
-        } else ev.push({type:'boxlost', sq:mv.to});
-      }
-    }
+    if (arrived) text += collectBox(n, mv.to, s, ev);
     n.ply++; n.lastTo = mv.to; n.lastFrom = mv.drop ? -1 : mv.from; n.moved++;
     if (!n.result){
       if (!(n.dual && n.moved < 2 && legal(n, true).length)) endTurn(n);
       finish(n);
-    }
+    } else cleanGum(n);
     return {st:n, ev, text, pub:text, item:false};
   }
 
@@ -750,7 +886,7 @@ const ItemShogi = (() => {
     return {states, entries, events, result: st.result, invalid, pos: st};
   }
 
-  return {ITEMS, INFO, HAND_MAX, init, legal, act, replay, canUse, itemTargets, inDanger};
+  return {ITEMS, INFO, HAND_MAX, init, legal, act, replay, canUse, itemTargets, inDanger, canGum, pullDest, gumSquares, hasAura, auraSq};
 })();
 // ENGINE END
 </script>
@@ -776,7 +912,7 @@ const S = {
   gameId: null, game: null, gameRef: null, unsubGame: null, notFound: false,
   local: false, localMoves: [], localStamps: [], localStart: Date.now(), localSeed: 1,
   repKey: null, rep: null, legalKey: null, legal: [],
-  viewPly: null, sel: null, promo: null, itemPick: null, manualFlip: false, confirm: null, modal: null,
+  viewPly: null, sel: null, promo: null, itemPick: null, gumPick: false, animPly: null, manualFlip: false, confirm: null, modal: null,
   pending: false, dragging: false, animSeen: null,
   names: {}, avatars: {}, peers: [], online: new Set(),
   sound: lsGet('sound', true),
@@ -802,6 +938,21 @@ const ICON = {
   mush: `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M5 26 C5 9 43 9 43 26 Z" fill="#E53935" stroke="#333" stroke-width="2" stroke-linejoin="round"/><circle cx="15" cy="18" r="4" fill="#fff"/><circle cx="33" cy="18" r="4" fill="#fff"/><circle cx="24" cy="12.5" r="2.8" fill="#fff"/><path d="M14 26 h20 v9 a6 6 0 0 1 -6 6 h-8 a6 6 0 0 1 -6 -6 Z" fill="#FFF3D6" stroke="#333" stroke-width="2"/><ellipse cx="20.5" cy="32" rx="1.4" ry="2.6" fill="#222"/><ellipse cx="27.5" cy="32" rx="1.4" ry="2.6" fill="#222"/></svg>`,
   volt: `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M28 2 L9 27 H22 L17 46 L39 18 H26 Z" fill="#FFE14A" stroke="#B57A00" stroke-width="2" stroke-linejoin="round"/></svg>`,
   ge: `<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="27" r="16" fill="#F7C948" stroke="#8A5A00" stroke-width="2"/><path d="M24 12 V43" stroke="#8A5A00" stroke-width="2"/><circle cx="24" cy="10" r="6" fill="#6B4500" stroke="#8A5A00" stroke-width="1.5"/><circle cx="16.5" cy="22" r="3.2" fill="#8A5A00"/><circle cx="31.5" cy="22" r="3.2" fill="#8A5A00"/><circle cx="15" cy="32" r="3" fill="#8A5A00"/><circle cx="33" cy="32" r="3" fill="#8A5A00"/><path d="M19 7 l-4 -4 M29 7 l4 -4" stroke="#6B4500" stroke-width="2" stroke-linecap="round"/></svg>`,
+  hatsu: `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M30 22 C37 27 40 34 45 43" stroke="#FF7EC2" stroke-width="4.5" fill="none" stroke-linecap="round"/><path d="M9 30 C3 21 12 9 22 13 C29 5 43 10 38 22 C46 29 37 42 27 36 C21 44 7 40 9 30 Z" fill="#FF7EC2" stroke="#A3226B" stroke-width="2" stroke-linejoin="round"/><ellipse cx="17" cy="19" rx="4" ry="2.4" fill="#FFD0EA" transform="rotate(-25 17 19)"/><text x="23" y="32" font-size="15" font-weight="900" text-anchor="middle" fill="#fff" stroke="#A3226B" stroke-width="2.5" paint-order="stroke" font-family="Zen Maru Gothic, sans-serif">発</text></svg>`,
+  impact: `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M4 10 L11 15 L7 18 L14 24" stroke="#E0201A" stroke-width="2.4" fill="none" stroke-linejoin="round"/><path d="M44 8 L37 14 L41 17 L34 23" stroke="#E0201A" stroke-width="2.4" fill="none" stroke-linejoin="round"/><rect x="11" y="12" width="27" height="20" rx="7" fill="#1b1b1b" stroke="#E0201A" stroke-width="2.2"/><path d="M18 12.5 v9 M24.5 12.5 v9 M31 12.5 v9" stroke="#E0201A" stroke-width="1.6"/><path d="M11 25 h11 a4.5 4.5 0 0 1 0 9 h-6" fill="#1b1b1b" stroke="#E0201A" stroke-width="2.2" stroke-linejoin="round"/><rect x="15" y="32" width="19" height="11" rx="3" fill="#1b1b1b" stroke="#E0201A" stroke-width="2.2"/></svg>`,
+};
+// Arms and swords around a piece. Coordinates: the piece fills x 50-150, y 16-124 of a 200x140 box.
+const ARM = (x1, y1, cx, cy, x2, y2) => `<path d="M${x1} ${y1} Q${cx} ${cy} ${x2} ${y2}" stroke="#3a2a1a" stroke-width="19" fill="none" stroke-linecap="round"/><path d="M${x1} ${y1} Q${cx} ${cy} ${x2} ${y2}" stroke="#FFE1BD" stroke-width="12" fill="none" stroke-linecap="round"/><circle cx="${x2}" cy="${y2}" r="12" fill="#FFE1BD" stroke="#3a2a1a" stroke-width="3.5"/>`;
+function BLADE(hx, hy, tx, ty, glow){
+  const dx = tx - hx, dy = ty - hy, L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L, px = -uy, py = ux;
+  const bx = hx + ux * 9, by = hy + uy * 9, gx = hx + ux * 7, gy = hy + uy * 7;
+  return `<path d="M${hx - ux * 16} ${hy - uy * 16} L${hx} ${hy}" stroke="#6B3F1D" stroke-width="9" stroke-linecap="round"/>
+    <g class="${glow ? 'glow' : ''}"><path d="M${bx} ${by} L${tx} ${ty}" stroke="#2b3440" stroke-width="15" stroke-linecap="round"/><path d="M${bx} ${by} L${tx} ${ty}" stroke="${glow ? '#DDF7FF' : '#E8EEF4'}" stroke-width="9" stroke-linecap="round"/><path d="M${bx} ${by} L${tx} ${ty}" stroke="#fff" stroke-width="2.5" stroke-linecap="round" opacity=".8"/></g>
+    <path d="M${gx + px * 15} ${gy + py * 15} L${gx - px * 15} ${gy - py * 15}" stroke="#2b2b2b" stroke-width="10" stroke-linecap="round"/><path d="M${gx + px * 15} ${gy + py * 15} L${gx - px * 15} ${gy - py * 15}" stroke="#E2B23A" stroke-width="6" stroke-linecap="round"/>`;
+}
+const DECO = {
+  dual: `<svg class="deco dual" viewBox="0 0 200 140" preserveAspectRatio="none">${ARM(58, 86, 30, 100, 22, 66)}${BLADE(22, 66, -4, -22)}${ARM(142, 86, 170, 100, 178, 66)}${BLADE(178, 66, 204, -22)}</svg>`,
+  giga: `<svg class="deco giga" viewBox="0 0 200 140" preserveAspectRatio="none">${BLADE(42, 114, -14, -6, true)}${ARM(148, 98, 120, 146, 42, 114)}</svg>`,
 };
 
 /* ---------- sound ---------- */
@@ -835,6 +986,10 @@ const SFX = {
   boing: () => tone(420, .35, 'triangle', .2, 110),
   slash: () => { noise(.3, 2500, .8, 1.6, 'highpass'); tone(1200, .25, 'sawtooth', .05, 300); },
   gold: () => { [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, .5, 'triangle', .1, null, i*.07)); },
+  boom: () => { tone(110, 1.1, 'sine', .5, 28); tone(70, 1.3, 'triangle', .35, 22); noise(.9, 180, .7, 3, 'lowpass'); noise(.5, 2500, .5, 1.2, 'highpass'); },
+  charge: () => { tone(60, 1.6, 'sawtooth', .07, 240); tone(90, 1.6, 'sine', .12, 360); },
+  crackle: () => { for (let i=0;i<14;i++) setTimeout(() => noise(.06, 4000 + Math.random()*3000, 1, 1.4, 'bandpass'), i * 70); },
+  gum: () => { tone(300, .25, 'sine', .14, 620); tone(620, .3, 'triangle', .08, 240, .18); },
   roulette: () => { for (let i=0;i<12;i++) tone(700 + (i%2)*200, .04, 'square', .04, null, i*.07); tone(1046, .3, 'sine', .14, null, .9); },
 };
 
@@ -921,9 +1076,9 @@ function info(){
 }
 function canAct(){
   const i = info(), rep = getRep();
-  return i.status === 'playing' && S.viewPly === null && !S.pending && (S.local || i.mySide === rep.pos.turn);
+  return i.status === 'playing' && S.viewPly === null && S.animPly == null && !S.pending && (S.local || i.mySide === rep.pos.turn);
 }
-const canMove = () => canAct() && !S.itemPick;
+const canMove = () => canAct() && !S.itemPick && !S.gumPick;
 function canSee(side){ const i = info(); return S.local || i.status === 'ended' || side === i.mySide; }
 function resultText(result, n){
   if (!result) return '';
@@ -933,7 +1088,7 @@ function resultText(result, n){
 
 /* ---------- actions ---------- */
 async function doAction(a){
-  S.sel = null; S.promo = null; S.itemPick = null;
+  S.sel = null; S.promo = null; S.itemPick = null; S.gumPick = false;
   if (S.local){
     S.localMoves = [...S.localMoves, a]; S.localStamps = [...S.localStamps, Date.now()];
     saveLocal(); render(); playNew(); return;
@@ -962,7 +1117,7 @@ function useItem(it){
   const pos = getRep().pos;
   if (!canAct() || !I.canUse(pos, it, S.local)) return;
   if (S.itemPick === it){ S.itemPick = null; render(); return; }
-  if (I.INFO[it].need){ S.itemPick = it; S.sel = null; S.promo = null; render(); return; }
+  if (I.INFO[it].need){ S.itemPick = it; S.gumPick = false; S.sel = null; S.promo = null; render(); return; }
   const a = '@' + it;
   if (!I.act(pos, a, S.local)){ toast('いまは使えません（指せる手がなくなります）'); return; }
   doAction(a);
@@ -974,9 +1129,9 @@ function pickTarget(sq){
 }
 
 /* ---------- local practice ---------- */
-function saveLocal(){ lsSet('practice', {m:S.localMoves, t:S.localStamps, s:S.localStart, seed:S.localSeed}); }
+function saveLocal(){ lsSet('practice2', {m:S.localMoves, t:S.localStamps, s:S.localStart, seed:S.localSeed}); }
 function openLocal(){
-  const d = lsGet('practice', null);
+  const d = lsGet('practice2', null);
   if (d){ S.localMoves = d.m || []; S.localStamps = d.t || []; S.localStart = d.s || Date.now(); S.localSeed = d.seed || 1; }
   else { S.localSeed = (Math.random() * 2**32) >>> 0; S.localStart = Date.now(); }
   closeGame();
@@ -1255,13 +1410,16 @@ function pieceHtml(pc, rot, st){
   const cls = ['pc', 'k-' + pc.t];
   if (pc.p) cls.push('prom');
   if (rot) cls.push('rot');
+  let deco = '';
   if (st && st.T !== undefined){
     if (pc.star === st.T) cls.push('star');
     if (pc.mush) cls.push('mush');
     if (pc.frozen != null && pc.frozen >= st.T) cls.push('frozen');
     if (pc.float != null && pc.float >= st.T) cls.push('float');
+    if (pc.dual === st.T && st.dual) deco += DECO.dual;
+    if (pc.giga) deco += DECO.giga;
   }
-  return `<div class="${cls.join(' ')}">${ch}</div>`;
+  return `<div class="${cls.join(' ')}">${ch}${deco}</div>`;
 }
 function render(){
   $('#lobby').hidden = S.view !== 'lobby';
@@ -1280,6 +1438,7 @@ function renderModal(){
     <h2>アイテム戦のルール</h2>
     <p class="sub">駒の無い空きマスに ？ボックスがランダムに出ます。駒を進めて止まると、アイテムカードを1枚もらえます（最大${I.HAND_MAX}枚）。カードは自分の番に1回、指す前に使えます。カードを使っても手番は終わりません。</p>
     <div class="rule-list">${I.ITEMS.map(it => `<div class="rule-item">${ICON[it]}<div><b>${I.INFO[it].name}</b><span>${I.INFO[it].desc}</span></div></div>`).join('')}</div>
+    <p class="sub">バンジーガムの使い方：「発」で駒にオーラを纏わせると、アイテム欄に「つける／はずす／縮める」が出ます。1つ目に引き寄せ先（駒かマス）、2つ目に引き寄せたい駒をつけて「縮める」と、2つ目の駒が1つ目の方へ飛んでいきます（空きマスならそのマスへ、駒ならその手前へ）。</p>
     <p class="sub">アイテム戦では玉を取ったら勝ちです（二刀流の2手目、伏せたカードの発動などで起こります）。打ち歩詰めと千日手の判定はありません。練習盤では全部のアイテムを何度でも使えます。</p>
     <div class="actions" style="display:flex;justify-content:flex-end"><button class="btn primary" data-act="close-modal">閉じる</button></div>
   </div></div>`;
@@ -1393,20 +1552,49 @@ function itemsPanel(pos, inf){
   const act = canAct() && (free || pos.turn === inf.mySide);
   const cards = list.map(it => {
     const ok = act && I.canUse(pos, it, free);
-    return `<button class="icard${S.itemPick === it ? ' on' : ''}" data-item="${it}" ${ok ? '' : 'disabled'}>${ICON[it]}<span>${I.INFO[it].name}</span></button>`;
+    return `<button class="icard${S.itemPick === it ? ' on' : ''}" data-item="${it}" title="${esc(I.INFO[it].name)}" ${ok ? '' : 'disabled'}>${ICON[it]}<span>${I.INFO[it].short}</span></button>`;
   }).join('');
   let desc = 'カードにマウスを乗せると説明が出ます。';
   if (S.itemPick) desc = `${I.INFO[S.itemPick].name}：${I.INFO[S.itemPick].need === 'own' ? '自分の駒' : '相手の駒'}を選んでください（Escで取り消し）`;
+  else if (S.gumPick) desc = `バンジーガム：ガムをつける${pos.gum[pos.turn].length ? '2つ目（引き寄せたい駒）' : '1つ目（引き寄せ先の駒かマス）'}を選んでください（Escで取り消し）`;
   else if (!free && act && pos.cardUsed) desc = 'このターンはもうカードを使いました。';
+  // Bungee Gum controls appear once the side to move has a piece wearing the aura
+  const gumSide = free ? pos.turn : inf.mySide;
+  let gum = '';
+  if (gumSide !== null && I.hasAura(pos.board, gumSide)){
+    const mine = act && pos.turn === gumSide, n = pos.gum[gumSide].length;
+    gum = `<div class="gum-controls"><span class="lbl">バンジーガム（ガム ${n}/2）</span>
+      <button class="btn sm${S.gumPick ? ' on' : ''}" data-gum="a" ${mine && I.canGum(pos, 'a') ? '' : 'disabled'}>つける</button>
+      <button class="btn sm" data-gum="d" ${mine && I.canGum(pos, 'd') ? '' : 'disabled'}>はずす</button>
+      <button class="btn sm" data-gum="c" ${mine && I.canGum(pos, 'c') ? '' : 'disabled'}>縮める</button></div>`;
+  }
   return `<div class="items"><div class="head"><span>アイテム</span><span class="pill">${free ? '練習：使い放題' : `${list.length}/${I.HAND_MAX}枚`}</span></div>
     ${list.length ? `<div class="cardgrid">${cards}</div>` : '<div class="sub" style="color:var(--muted);font-size:12.5px">盤上の ？ボックスに駒を進めると手に入ります。</div>'}
-    <div class="idesc" id="idesc">${esc(desc)}</div></div>`;
+    ${gum}<div class="idesc" id="idesc">${esc(desc)}</div></div>`;
+}
+
+// Pink gum strands drawn over the board, in cell units (0-9 on both axes)
+function gumLayer(pos, flipped){
+  let paths = '';
+  const pt = sq => { const v = flipped ? 80 - sq : sq; return [v % 9 + .5, ((v / 9) | 0) + .5]; };
+  for (const s of [0, 1]){
+    const sqs = I.gumSquares(pos, s).filter(q => q >= 0);
+    if (!sqs.length) continue;
+    const ends = sqs.length === 2 ? sqs : [I.auraSq(pos.board, s), sqs[0]];
+    if (ends[0] < 0) continue;
+    const [a, b] = ends.map(pt), mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2 + .35;
+    const d = `M${a[0]} ${a[1]} Q${mx} ${my} ${b[0]} ${b[1]}`;
+    const w = sqs.length === 2 ? 1 : .6;
+    paths += `<path d="${d}" stroke="#A3226B" stroke-width="${12 * w}" opacity=".55"/><path d="${d}" stroke="#FF7EC2" stroke-width="${8 * w}"/><path d="${d}" stroke="#FFD0EA" stroke-width="${2.5 * w}" opacity=".9"/>`;
+    for (const q of sqs){ const [x, y] = pt(q); paths += `<path d="M${x - .001} ${y} L${x} ${y}" stroke="#FF7EC2" stroke-width="18"/><path d="M${x - .001} ${y} L${x} ${y}" stroke="#FFD0EA" stroke-width="7"/>`; }
+  }
+  return paths ? `<svg class="gumlayer" viewBox="0 0 9 9" preserveAspectRatio="none">${paths}</svg>` : '';
 }
 
 function renderGame(){
   const rep = getRep(), inf = info(), g = S.game, item = isItem();
   const ply = S.viewPly ?? rep.states.length - 1;
-  const pos = rep.states[ply];
+  const pos = rep.states[S.animPly ?? ply];
   const flipped = (S.local ? false : inf.mySide === 1) !== S.manualFlip;
   const bottom = flipped ? 1 : 0, top = 1 - bottom;
   const movable = canMove();
@@ -1415,6 +1603,7 @@ function renderGame(){
   if (movable && S.sel) for (const m of legal) if (matchesSel(m)) dests.set(m.to, true);
   const checkSq = inCheckAt(pos) ? checkKingSq(pos) : -1;
   const tgts = S.itemPick ? new Set(I.itemTargets(pos, S.itemPick)) : null;
+  const gumTaken = item ? I.gumSquares(pos, pos.turn) : [];
   if (g){ if (g.sente) wantIds.add(g.sente); if (g.gote) wantIds.add(g.gote); }
 
   let cells = '';
@@ -1426,6 +1615,7 @@ function renderGame(){
     if (dests.has(sq)){ cls.push('dest'); if (pc) cls.push('cap'); }
     if (sq === checkSq) cls.push('check');
     if (tgts?.has(sq)){ cls.push('tgt'); if (I.INFO[S.itemPick].need === 'enemy') cls.push('enemy'); }
+    if (S.gumPick && !gumTaken.includes(sq)) cls.push('tgt', 'gumt');
     const selectable = movable && pc && pc.s === pos.turn && legal.some(m => m.from === sq);
     if (selectable) cls.push('can');
     if (S.dragging && S.sel && S.sel.from === sq) cls.push('lifted');
@@ -1434,6 +1624,8 @@ function renderGame(){
       if (item){
         if (pc.float != null && pc.float >= pos.T) inner += '<i class="aura gold"></i><i class="aura shadow"></i>';
         if (pc.star === pos.T) inner += '<i class="aura rainbow"></i>';
+        if (pc.aura) inner += '<i class="aura nen"></i>';
+        if (pc.impact) inner += '<i class="aura haki"></i>';
       }
       inner += pieceHtml(pc, pc.s !== bottom, item ? pos : null);
       if (item){
@@ -1474,7 +1666,6 @@ function renderGame(){
     let extra = '';
     if (item){
       if (pos.dual && pos.turn === side) extra += `<span class="fxchip" title="二刀流：あと${2 - pos.moved}手">${ICON.dual}</span>`;
-      if (pos.giga[side]) extra += `<span class="fxchip" title="ギガスラッシュ構え">${ICON.giga}</span>`;
       extra += `<div class="bcards">${pos.cards[side].map(it => canSee(side) ? `<span class="bcard" title="${I.INFO[it].name}">${ICON[it]}</span>` : '<span class="bcard back">?</span>').join('')}</div>`;
     }
     return `<div class="band${isTurn ? ' turn' : ''}${isTurn && S.flash ? ' flash' : ''}">${who}<div class="hand">${hp}</div>${extra}<div class="badge ${side === 0 ? 'sente' : 'gote'}">${SIDE[side]}</div></div>`;
@@ -1507,7 +1698,7 @@ function renderGame(){
 
   const table = `<div class="table">${band(top)}
     <div class="wood"><div class="files">${files}</div><div class="ranks">${ranks}</div>
-      <div class="grid" id="grid">${cells}${hoshi}${promo}</div></div>
+      <div class="grid" id="grid">${cells}${hoshi}${item ? gumLayer(pos, flipped) : ''}${promo}</div></div>
     ${band(bottom)}${overlay}</div>`;
 
   let big = '', small = '';
@@ -1594,7 +1785,9 @@ function fx(cls, html, style, ms){
 function banner(text, tone='', at){
   const g = gridBox(); if (!g) return;
   const p = at || {x: g.left + g.width/2, y: g.top + g.height * .42};
-  fx('fx-banner ' + tone, esc(text), {left: p.x + 'px', top: p.y + 'px'}, 1600);
+  const el = fx('fx-banner ' + tone, esc(text), {left: p.x + 'px', top: p.y + 'px'}, 1600);
+  const half = el.offsetWidth / 2;
+  if (half * 2 < g.width) el.style.left = Math.min(Math.max(p.x, g.left + half + 6), g.right - half - 6) + 'px';
 }
 function ring(sq, color){ const c = cellCenter(sq); if (c) fx('fx-ring', '', {left: c.x + 'px', top: c.y + 'px', color}, 650); }
 function fxVolt(sq){
@@ -1648,32 +1841,183 @@ function fxRoulette(item, hidden){
     lbl.textContent = hidden ? '相手がアイテムを入手' : `${I.INFO[item].name} ゲット！`;
   }, 900);
 }
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const above = (sq, k = 1.1) => { const c = cellCenter(sq); return c && {x: c.x, y: Math.max(40, c.y - c.h * k)}; };
+function growDeco(sq, kind){ document.querySelector(`.cell[data-sq="${sq}"] .deco.${kind}`)?.classList.add('grow'); }
 function playEv(ev){
   switch (ev.type){
-    case 'dual': fxSwords(); SFX.slash(); break;
+    case 'dual': growDeco(ev.sq, 'dual'); fxSwords(); SFX.slash(); break;
     case 'star': fxStar(ev.sq); SFX.chime(); break;
-    case 'giga': banner('ギガスラッシュ 構え', 'blue'); SFX.slash(); break;
-    case 'mush': ring(ev.sq, '#E53935'); banner('パワーアップ！', '', cellCenter(ev.sq) && {x: cellCenter(ev.sq).x, y: Math.max(40, cellCenter(ev.sq).y - 50)}); SFX.boing(); break;
+    case 'giga': growDeco(ev.sq, 'giga'); banner('ギガスラッシュ 構え', 'blue', above(ev.sq)); SFX.slash(); break;
+    case 'mush': ring(ev.sq, '#E53935'); banner('パワーアップ！', '', above(ev.sq, .9)); SFX.boing(); break;
     case 'volt': fxVolt(ev.sq); SFX.zap(); break;
     case 'ge': if (canSee(ev.side)){ ring(ev.sq, '#F7C948'); banner('カードを仕込んだ', 'gold small'); } else banner('相手がカードを伏せた…', 'small'); SFX.chime(); break;
-    case 'bounce': ring(ev.sq, '#E53935'); banner('ボヨン！', '', cellCenter(ev.sq) && {x: cellCenter(ev.sq).x, y: Math.max(40, cellCenter(ev.sq).y - 50)}); SFX.boing(); break;
+    case 'hatsu': ring(ev.sq, '#FF6FB5'); banner('発！', 'pink', above(ev.sq)); SFX.gum(); break;
+    case 'impact': fxHakiCharge(ev.sq); banner('覇気を纏った', 'red small', above(ev.sq)); SFX.charge(); break;
+    case 'gumattach': ring(ev.sq, '#FF6FB5'); SFX.gum(); break;
+    case 'gumdetach': if (ev.sq >= 0) ring(ev.sq, '#FFB3DA'); break;
+    case 'bounce': ring(ev.sq, '#E53935'); banner('ボヨン！', '', above(ev.sq, .9)); SFX.boing(); break;
     case 'geon': fxGold(ev.sq); SFX.gold(); break;
-    case 'slash': fxSlash(ev.sqs); SFX.slash(); break;
     case 'box': fxRoulette(ev.item, !canSee(ev.side)); SFX.roulette(); break;
     case 'boxlost': ring(ev.sq, '#999'); banner('持ちきれない！', 'small'); break;
   }
 }
+// Effects that must play on the position BEFORE the action (the board is held there until they finish)
+function playPre(ev){
+  if (ev.type === 'gi') return fxGalaxy(ev.from, ev.to);
+  if (ev.type === 'gigaspin') return fxGigaSpin(ev.from, ev.sqs);
+  if (ev.type === 'gumpull') return fxGumPull(ev.from, ev.to, ev.anchor);
+  return Promise.resolve();
+}
+const animQ = [];
+let animRunning = false;
 function playNew(){
   const rep = getRep(), cnt = rep.entries.length;
-  if (S.animSeen === null || cnt < S.animSeen || cnt - S.animSeen > 4){ S.animSeen = cnt; return; }
-  let delay = 0;
-  for (let i = S.animSeen; i < cnt; i++){
-    const ent = rep.entries[i], evs = rep.events[i] || [], d0 = delay;
-    if (ent.isMove) setTimeout(clack, d0);
-    evs.forEach((ev, j) => setTimeout(() => playEv(ev), d0 + 120 + j * 450));
-    delay += 250 + evs.length * 450;
-  }
+  if (S.animSeen === null || cnt < S.animSeen || cnt - S.animSeen > 4){ S.animSeen = cnt; animQ.length = 0; return; }
+  for (let i = S.animSeen; i < cnt; i++) animQ.push(i);
   S.animSeen = cnt;
+  runAnim();
+}
+async function runAnim(){
+  if (animRunning) return;
+  animRunning = true;
+  try {
+    while (animQ.length){
+      const i = animQ.shift(), rep = getRep(), ent = rep.entries[i], evs = rep.events[i] || [];
+      if (!ent) continue;
+      const pre = evs.filter(e => e.pre);
+      if (pre.length && !reduced() && S.view === 'game' && S.viewPly === null){
+        S.animPly = i; render();
+        for (const ev of pre){ await playPre(ev); render(); }
+        S.animPly = null; render();
+      }
+      if (ent.isMove) clack();
+      const rest = evs.filter(e => !e.pre);
+      for (const ev of rest){ await wait(120); playEv(ev); await wait(380); }
+      if (!rest.length) await wait(60);
+    }
+  } finally {
+    if (S.animPly != null){ S.animPly = null; render(); }
+    animRunning = false;
+  }
+}
+
+/* --- piece clone used by the big effects so it can sit above the darkened screen --- */
+function cloneOf(sq){
+  const cell = document.querySelector(`.cell[data-sq="${sq}"]`), pc = cell?.querySelector('.pc');
+  if (!cell || !pc) return null;
+  const r = cell.getBoundingClientRect();
+  const el = fx('fx-clone', pc.outerHTML, {left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px'}, 6000);
+  pc.style.visibility = 'hidden';
+  return el;
+}
+function redBolt(c, spread){
+  const w = 2 * spread, h = 2 * spread, pts = [];
+  const a = Math.random() * Math.PI * 2, len = spread * (.6 + Math.random() * .4);
+  let x = spread, y = spread;
+  pts.push([x, y]);
+  for (let i = 1; i <= 6; i++){ x = spread + Math.cos(a) * len * i / 6 + (Math.random() * 2 - 1) * 14; y = spread + Math.sin(a) * len * i / 6 + (Math.random() * 2 - 1) * 14; pts.push([x, y]); }
+  const d = 'M' + pts.map(p => p.map(v => v.toFixed(1)).join(' ')).join(' L');
+  fx('fx-redbolt', `<svg width="${w}" height="${h}"><path d="${d}" stroke="rgba(255,30,20,.5)" stroke-width="9"/><path d="${d}" stroke="#ff2a1a" stroke-width="4"/><path d="${d}" stroke="#1a0000" stroke-width="1.6"/></svg>`,
+    {left: (c.x - spread) + 'px', top: (c.y - spread) + 'px'}, 320);
+}
+function fxHakiCharge(sq){
+  const c = cellCenter(sq); if (!c) return;
+  fx('fx-converge', '', {left: c.x + 'px', top: c.y + 'px'}, 750);
+  for (let k = 0; k < 4; k++) setTimeout(() => redBolt(c, 70), k * 110);
+}
+function particles(c){
+  const cv = document.createElement('canvas'); cv.className = 'fx fx-canvas';
+  cv.width = innerWidth; cv.height = innerHeight; document.body.appendChild(cv);
+  const ctx = cv.getContext('2d'), ps = [];
+  for (let i = 0; i < 46; i++){ const a = Math.random() * Math.PI * 2, v = 4 + Math.random() * 11; ps.push({x: c.x, y: c.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 4, r: Math.random() * 6, vr: (Math.random() - .5) * .5, w: 4 + Math.random() * 9, h: 2 + Math.random() * 3, wood: true, col: ['#E79A3A', '#C9792A', '#FFF4D6', '#8a5a2a'][i % 4]}); }
+  for (let i = 0; i < 70; i++){ const a = Math.random() * Math.PI * 2, v = 2 + Math.random() * 9; ps.push({x: c.x, y: c.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, s: 1.5 + Math.random() * 3, col: ['#fff', '#FFE58A', '#FF6A4D', '#FFD0A0'][i % 4]}); }
+  const t0 = performance.now();
+  (function step(t){
+    const k = (t - t0) / 1600;
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    for (const p of ps){
+      p.x += p.vx; p.y += p.vy; p.vy += p.wood ? .45 : .05; p.vx *= .985;
+      ctx.globalAlpha = Math.max(0, 1 - k);
+      if (p.wood){ p.r += p.vr; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.col; ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h); ctx.restore(); }
+      else { ctx.fillStyle = p.col; ctx.shadowColor = p.col; ctx.shadowBlur = 8; ctx.beginPath(); ctx.arc(p.x, p.y, p.s * (1 - k * .6), 0, 7); ctx.fill(); ctx.shadowBlur = 0; }
+    }
+    if (k < 1) requestAnimationFrame(step); else cv.remove();
+  })(t0);
+}
+function crack(c){
+  const g = gridBox(); if (!g) return;
+  let paths = '';
+  for (let i = 0; i < 9; i++){
+    let a = i / 9 * Math.PI * 2 + Math.random() * .5, x = c.x - g.left, y = c.y - g.top, d = `M${x.toFixed(1)} ${y.toFixed(1)}`;
+    const len = 120 + Math.random() * 260;
+    for (let s = 0; s < len; s += 26){ a += (Math.random() - .5) * .7; x += Math.cos(a) * 26; y += Math.sin(a) * 26; d += ` L${x.toFixed(1)} ${y.toFixed(1)}`; }
+    paths += `<path d="${d}" stroke="rgba(255,240,220,.55)" stroke-width="5"/><path d="${d}" stroke="#1a0d05" stroke-width="2.4"/>`;
+  }
+  fx('fx-crack', `<svg width="${g.width}" height="${g.height}" style="overflow:hidden">${paths}</svg>`, {left: g.left + 'px', top: g.top + 'px'}, 3500);
+}
+const FIST = `<svg viewBox="0 0 120 120"><g fill="rgba(25,0,0,.75)" stroke="rgba(255,60,40,.9)" stroke-width="3" stroke-linejoin="round"><rect x="30" y="4" width="60" height="44" rx="10"/><rect x="18" y="44" width="84" height="62" rx="20"/><path d="M38 106 v-24 M60 106 v-24 M82 106 v-24" stroke-width="3"/><path d="M18 64 h26 a10 10 0 0 1 0 20 h-14"/></g></svg>`;
+async function fxGalaxy(from, to){
+  const a = cellCenter(from), b = cellCenter(to); if (!a || !b) return;
+  SFX.charge();
+  const dark = fx('fx-dark', '', {}, 5200);
+  const atk = cloneOf(from), tgt = cloneOf(to);
+  atk?.classList.add('rise');
+  banner('拳骨衝突', 'red small', {x: (a.x + b.x) / 2, y: Math.max(40, Math.min(a.y, b.y) - b.h * 1.6)});
+  await wait(450);
+  fx('fx-converge', '', {left: a.x + 'px', top: (a.y - a.h * 1.4) + 'px'}, 750);
+  await wait(450);
+  atk?.classList.add('haki');
+  SFX.crackle();
+  for (let k = 0; k < 14; k++) setTimeout(() => redBolt({x: a.x + (Math.random() - .5) * 140, y: a.y - a.h * 1.4 + (Math.random() - .5) * 110}, 90 + Math.random() * 100), k * 80);
+  await wait(1050);
+  const fist = fx('fx-fist', FIST, {left: b.x + 'px', top: (b.y + b.h * .4) + 'px'}, 900);
+  await wait(290);
+  tgt?.classList.add('squash');
+  await wait(170);
+  SFX.boom();
+  fist.classList.add('gone');
+  tgt?.remove();
+  fx('fx-flash', '', {}, 520);
+  fx('fx-shock', '', {left: b.x + 'px', top: b.y + 'px'}, 650);
+  particles(b); crack(b);
+  banner('ギャラクシーインパクト！！', 'red', {x: b.x, y: Math.max(50, b.y - b.h * 1.4)});
+  const table = document.querySelector('.table'); table?.classList.remove('shake'); void table?.offsetWidth; table?.classList.add('shake');
+  await wait(650);
+  dark.classList.add('out');
+  atk?.remove();
+}
+async function fxGigaSpin(from, sqs){
+  const pc = document.querySelector(`.cell[data-sq="${from}"] .pc`);
+  SFX.slash();
+  pc?.animate([{rotate: '0deg'}, {rotate: '360deg'}], {duration: 520, easing: 'cubic-bezier(.3,0,.2,1)'});
+  await wait(430);
+  fxSlash(sqs);
+  for (const q of sqs) document.querySelector(`.cell[data-sq="${q}"] .pc`)?.classList.add('hit');
+  for (const q of sqs){ const c = cellCenter(q); if (c) fx('fx-ring', '', {left: c.x + 'px', top: c.y + 'px', color: '#7FE3FF'}, 650); }
+  await wait(560);
+}
+async function fxGumPull(from, to, anchor){
+  const pc = document.querySelector(`.cell[data-sq="${from}"] .pc`), a = cellCenter(from), b = cellCenter(to), k = cellCenter(anchor);
+  if (!pc || !a || !b) return;
+  SFX.gum();
+  banner('バンジーガム！', 'pink', {x: (a.x + b.x) / 2, y: Math.max(40, Math.min(a.y, b.y) - a.h)});
+  document.querySelector('.gumlayer')?.style.setProperty('opacity', '0');
+  const line = fx('', `<svg width="${innerWidth}" height="${innerHeight}"><path d="" stroke="#A3226B" stroke-width="12" opacity=".5" fill="none" stroke-linecap="round"/><path d="" stroke="#FF7EC2" stroke-width="8" fill="none" stroke-linecap="round"/></svg>`, {left: '0', top: '0', zIndex: 81}, 1000);
+  const paths = line.querySelectorAll('path'), t0 = performance.now(), dur = 520;
+  const anim = pc.animate([{translate: '0 0'}, {translate: `${b.x - a.x}px ${b.y - a.y}px`}], {duration: dur, easing: 'cubic-bezier(.55,-0.35,.35,1.3)', fill: 'forwards'});
+  await new Promise(res => {
+    (function step(t){
+      const p = Math.min(1, (t - t0) / dur), e = p < .5 ? 2*p*p : 1 - Math.pow(-2*p + 2, 2) / 2;
+      const x = a.x + (b.x - a.x) * e, y = a.y + (b.y - a.y) * e, sag = 26 * (1 - p);
+      const d = `M${k.x} ${k.y} Q${(k.x + x) / 2} ${(k.y + y) / 2 + sag} ${x} ${y}`;
+      paths.forEach(el => el.setAttribute('d', d));
+      if (p < 1) requestAnimationFrame(step); else res();
+    })(t0);
+  });
+  SFX.boing();
+  await wait(120);
+  anim.cancel();
 }
 
 /* ---------- input ---------- */
@@ -1681,7 +2025,7 @@ let drag = null;
 function setPly(p){
   const n = getRep().states.length - 1;
   S.viewPly = p >= n ? null : Math.max(0, p);
-  S.sel = null; S.promo = null; S.itemPick = null; render();
+  S.sel = null; S.promo = null; S.itemPick = null; S.gumPick = false; render();
 }
 const flippedNow = () => (S.local ? false : info().mySide === 1) !== S.manualFlip;
 document.addEventListener('pointerdown', e => {
@@ -1692,6 +2036,17 @@ document.addEventListener('pointerdown', e => {
   if (S.itemPick){
     if (cell && I.itemTargets(getRep().pos, S.itemPick).includes(+cell.dataset.sq)){ e.preventDefault(); pickTarget(+cell.dataset.sq); return; }
     if (!e.target.closest('[data-item]')){ S.itemPick = null; render(); }
+    return;
+  }
+  if (S.gumPick){
+    if (cell){
+      e.preventDefault();
+      const a = `~a:${E.sqToUsi(+cell.dataset.sq)}`;
+      if (I.act(getRep().pos, a, S.local)){ S.gumPick = false; doAction(a); }
+      else toast('そこにはつけられません');
+      return;
+    }
+    if (!e.target.closest('[data-gum]')){ S.gumPick = false; render(); }
     return;
   }
   if (!cell && !hp) return;
@@ -1764,13 +2119,20 @@ document.addEventListener('keydown', e => {
   if (S.modal && e.key === 'Escape'){ S.modal = null; render(); return; }
   if (S.view !== 'game') return;
   const n = getRep().states.length - 1;
-  if (e.key === 'Escape'){ S.sel = null; S.promo = null; S.confirm = null; S.itemPick = null; render(); }
+  if (e.key === 'Escape'){ S.sel = null; S.promo = null; S.confirm = null; S.itemPick = null; S.gumPick = false; render(); }
   else if (e.key === 'ArrowLeft'){ e.preventDefault(); setPly((S.viewPly ?? n) - 1); }
   else if (e.key === 'ArrowRight'){ e.preventDefault(); setPly((S.viewPly ?? n) + 1); }
 });
 document.addEventListener('click', e => {
   const pb = e.target.closest('[data-promo]');
   if (pb && S.promo){ const want = pb.dataset.promo === '1'; const mv = S.promo.cands.find(m => m.promote === want); doAction(E.toUsi(mv)); return; }
+  const gb = e.target.closest('[data-gum]');
+  if (gb && !gb.disabled){
+    const op = gb.dataset.gum;
+    if (op === 'a'){ S.gumPick = !S.gumPick; S.itemPick = null; S.sel = null; render(); }
+    else { S.gumPick = false; doAction('~' + op); }
+    return;
+  }
   const ic = e.target.closest('[data-item]');
   if (ic && !ic.disabled){ useItem(ic.dataset.item); return; }
   const li = e.target.closest('#kifuList li[data-ply]');
