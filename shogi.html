@@ -110,6 +110,11 @@ button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px so
 .hp.can{cursor:grab}
 .hp.lifted .pc{opacity:.25}
 .bcards{display:flex;gap:3px;flex:none}
+.grave{position:relative;flex:none;width:calc(var(--cw) * .5);height:calc(var(--cw) * .6);display:grid;place-items:center;cursor:help}
+.grave svg{width:100%;height:100%;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
+.grave .cnt{position:absolute;right:-4px;top:-4px;font-size:11px;font-weight:900;color:#fff;background:#3a3f46;border-radius:999px;min-width:17px;height:17px;line-height:17px;text-align:center;padding:0 4px}
+.grave.rise{animation:graverise .8s cubic-bezier(.2,1.6,.4,1)}
+@keyframes graverise{from{translate:0 40%;scale:.3;opacity:0}to{translate:0 0;scale:1;opacity:1}}
 .bcard{width:calc(var(--cw) * .4);height:calc(var(--cw) * .54);border-radius:5px;background:#FFF8E6;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.35);display:grid;place-items:center;box-sizing:border-box}
 .bcard svg{width:90%;height:auto}
 .bcard.back{background:repeating-linear-gradient(45deg,#3B2A6B 0 4px,#4C3A85 4px 8px);color:#FFD43B;font-weight:900;font-size:calc(var(--cw) * .26)}
@@ -198,6 +203,25 @@ button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px so
 .rule-item svg{width:44px;height:44px}
 .rule-item b{display:block}
 .rule-item span{color:var(--muted);font-size:13px}
+.demo{position:fixed;inset:0;z-index:70;display:grid;place-items:center;background:rgba(30,18,8,.55);padding:20px}
+.demo-card{max-width:calc(var(--cw) * 5 + 120px)}
+.demo-head{display:flex;flex-direction:column;gap:2px;margin-bottom:12px}
+.demo-head b{font-size:17px;font-weight:900}
+.demo-head .sub{color:var(--muted);font-size:12.5px}
+.demo-table{width:auto;overflow:visible}
+.demo-table .wood{padding:14px}
+.demo-grid{grid-template-columns:repeat(5,var(--cw));grid-template-rows:repeat(3,var(--ch))}
+.demo-grid .cell{border-right:1px solid var(--grid);border-bottom:1px solid var(--grid)}
+.demo-grid .cell:nth-child(5n){border-right:0}
+.demo-grid .cell:nth-child(n+11){border-bottom:0}
+.fx-fun{z-index:92;transform:translate(-50%,-50%);filter:drop-shadow(0 3px 4px rgba(0,0,0,.35))}
+.fx-fun svg{width:100%;height:100%}
+.fx-fun.splat{animation:splat .9s ease-out forwards}
+@keyframes splat{from{scale:.2;opacity:1}30%{scale:1.1}to{scale:1.2;opacity:0}}
+.fx-fun.stuck{animation:stuck 3.2s ease-in forwards}
+@keyframes stuck{0%{scale:1.3}10%{scale:1}80%{opacity:1;translate:0 0}100%{opacity:0;translate:0 14px}}
+.fx-fun.finger{rotate:var(--tilt,0deg);animation:finger 2.3s cubic-bezier(.2,1.5,.4,1) forwards}
+@keyframes finger{0%{scale:0}12%{scale:1.15}20%{scale:1}30%{translate:0 -6px}38%{translate:0 0}46%{translate:0 -6px}54%{translate:0 0}85%{opacity:1}100%{opacity:0}}
 .cut-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}
 .cmdbar{position:fixed;left:50%;bottom:calc(70px + env(safe-area-inset-bottom, 0px));transform:translateX(-50%);z-index:95;display:flex;gap:8px;align-items:center;background:#2A2018;color:#FFF4D6;padding:8px 10px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
 .cmdbar input{background:#3a2c20;border:1px solid #5a4632;color:#FFF4D6;border-radius:8px;padding:6px 10px;width:220px;font-family:ui-monospace,Menlo,monospace}
@@ -390,6 +414,7 @@ button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px so
 <main id="lobby"></main>
 <main id="game" hidden></main>
 <div id="modal"></div>
+<div id="demoRoot"></div>
 <div id="toast" class="toast" hidden></div>
 
 <script id="engine">
@@ -639,7 +664,7 @@ const ItemShogi = (() => {
     ge:     {name:'ゴールド・エクスペリエンス', short:'ゴールドE', need:'own', desc:'仕込みカード。自分の駒（玉以外）の裏に伏せておく。その駒が取られそうになると発動し、金のオーラで宙に浮いて相手の次の番まで取られない。'},
     hatsu:  {name:'発', short:'発', need:'own', desc:'自分の駒1枚が白いオーラを纏う。纏った駒は相手のアイテム攻撃を受けない（10万ボルトの対象にならない、ギガスラッシュの巻き添えにならない、拳骨衝突でも粉砕されず普通に取られるだけ）。'},
     gum:    {name:'バンジーガム', short:'バンジーガム', need:'own', desc:'自分の駒1枚がガムのオーラを纏い、バンジーガムを操れるようになる。ガムを2か所（駒かマス）につけて縮めると、2つ目につけた駒が1つ目の方へ引き寄せられる。縮めるとその番の1手になる。つける・はずすは自由。'},
-    impact: {name:'拳骨衝突（ギャラクシーインパクト）', short:'拳骨衝突', need:'own', desc:'理外の覇気が盤面を穿つ！ 自分の駒1枚に覇気を纏わせる。その駒が次に相手の駒を取ると、その駒を粉砕する。粉砕された駒は持ち駒にならず、ゲームから消える（きのこ・仕込みカードも貫通）。'},
+    impact: {name:'拳骨衝突（ギャラクシーインパクト）', short:'拳骨衝突', need:'own', desc:'理外の覇気が盤面を穿つ！ 自分の駒1枚に覇気を纏わせる。その駒が次に相手の駒を取ると、その駒を粉砕する。粉砕された駒は持ち駒にならず墓地へ送られ、二度と使えない（きのこ・仕込みカードも貫通）。'},
   };
   const HAND_MAX = 3, BOX_MAX = 2;
   const KING_D = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
@@ -904,7 +929,7 @@ const ItemShogi = (() => {
         const moved = mv.promote ? {...pc, p:true} : pc;
         b[mv.to] = moved; b[mv.from] = null;
         if (tg && moved.impact && !crush) moved.impact = false;
-        if (crush){ moved.impact = false; ev.push({type:'gi', from:mv.from, to:mv.to, pre:true}); text += '（拳骨衝突で粉砕）'; }
+        if (crush){ moved.impact = false; ev.push({type:'gi', from:mv.from, to:mv.to, pre:true}); text += '（拳骨衝突で粉砕→墓地へ）'; }
         if (tg && tg.t !== 'K' && moved.giga){
           moved.giga = false;
           const r = (mv.to/9)|0, c = mv.to%9, hit = [mv.to];
@@ -1117,8 +1142,8 @@ function replayFor(mode, moves, seed, free){
     events: r.kifu.map(() => []), result: r.result, invalid: r.invalid};
 }
 function getRep(){
-  const mv = curMoves(), k = curMode() + '|' + curSeed() + '|' + (S.local ? 'f' : '') + mv.join(' ');
-  if (S.repKey !== k){ S.rep = replayFor(curMode(), mv, curSeed(), S.local); S.repKey = k; }
+  const mv = curMoves(), k = curMode() + '|' + curSeed() + '|' + mv.join(' ');
+  if (S.repKey !== k){ S.rep = replayFor(curMode(), mv, curSeed(), false); S.repKey = k; }
   return S.rep;
 }
 function legalMoves(){
@@ -1177,27 +1202,27 @@ function chooseMove(cands){
 }
 const matchesSel = m => S.sel && (S.sel.drop ? m.drop === S.sel.drop : m.from === S.sel.from);
 // "@!" marks a card played from the free palette (practice board or the item command)
-const itemFree = () => S.local || S.cheat;
-const itemCode = it => (itemFree() && !(S.local || getRep().pos.cards[getRep().pos.turn].includes(it)) ? '@!' : '@') + it;
+const itemFree = () => S.cheat;
+const itemCode = it => (S.cheat && !getRep().pos.cards[getRep().pos.turn].includes(it) ? '@!' : '@') + it;
 function useItem(it){
   const pos = getRep().pos;
   if (!canAct() || !I.canUse(pos, it, itemFree())) return;
   if (S.itemPick === it){ S.itemPick = null; render(); return; }
   if (I.INFO[it].need){ S.itemPick = it; S.gumPick = false; S.sel = null; S.promo = null; render(); return; }
   const a = itemCode(it);
-  if (!I.act(pos, a, S.local)){ toast('いまは使えません（指せる手がなくなります）'); return; }
+  if (!I.act(pos, a, false)){ toast('いまは使えません（指せる手がなくなります）'); return; }
   doAction(a);
 }
 function pickTarget(sq){
   const it = S.itemPick, pos = getRep().pos, a = `${itemCode(it)}:${E.sqToUsi(sq)}`;
-  if (!I.act(pos, a, S.local)){ toast('そこには使えません'); return; }
+  if (!I.act(pos, a, false)){ toast('そこには使えません'); return; }
   doAction(a);
 }
 
 /* ---------- local practice ---------- */
-function saveLocal(){ lsSet('practice2', {m:S.localMoves, t:S.localStamps, s:S.localStart, seed:S.localSeed}); }
+function saveLocal(){ lsSet('practice3', {m:S.localMoves, t:S.localStamps, s:S.localStart, seed:S.localSeed}); }
 function openLocal(){
-  const d = lsGet('practice2', null);
+  const d = lsGet('practice3', null);
   if (d){ S.localMoves = d.m || []; S.localStamps = d.t || []; S.localStart = d.s || Date.now(); S.localSeed = d.seed || 1; }
   else { S.localSeed = (Math.random() * 2**32) >>> 0; S.localStart = Date.now(); }
   closeGame();
@@ -1251,13 +1276,17 @@ const Ntfy = {
   id: null, es: null, msgs: new Map(), outbox: new Map(), ready: false, timer: null,
   topic: id => 'shogi-tk-' + id,
   open(id){
-    this.close(); this.id = id; this.msgs = new Map(); this.outbox = new Map(); this.ready = false;
+    this.close(); this.id = id; this.msgs = new Map(); this.outbox = new Map(); this.ready = false; this.openedAt = Date.now();
     const es = new EventSource(`${NTFY}/${this.topic(id)}/sse?since=all`);
     es.onmessage = ev => {
       let m; try { m = JSON.parse(ev.data); } catch { return; }
       if (m.event !== 'message' || this.msgs.has(m.id)) return;
       this.msgs.set(m.id, m);
-      try { const d = JSON.parse(m.message); if (d?.n) this.outbox.delete(d.n); } catch {}
+      try {
+        const d = JSON.parse(m.message);
+        if (d?.n) this.outbox.delete(d.n);
+        if (d?.k === 'fun' && d.by !== S.myId && m.time * 1000 > this.openedAt - 5000 && (d.f === 'unko' || d.f === 'fy') && (d.s === 0 || d.s === 1)) funFx(d.f, d.s);
+      } catch {}
       this.schedule();
     };
     es.onopen = () => { if (S.netDown){ S.netDown = false; render(); } };
@@ -1507,7 +1536,7 @@ function renderModal(){
       <div class="cut-row"><label class="btn sm" for="cutinFile-${it}">カットイン画像を選ぶ</label><input type="file" id="cutinFile-${it}" accept="image/*" hidden>
         <button class="btn sm" data-act="cutin-test" data-k="${it}">再生</button><button class="btn sm" data-act="cutin-clear" data-k="${it}" ${cutinImg(it) ? '' : 'disabled'}>標準に戻す</button>${cutinImg(it) ? '<span class="pill wait">自分の画像</span>' : ''}</div></div></div>`).join('')}</div>
     <p class="sub">バンジーガムの使い方：「バンジーガム」のカードで駒にガムのオーラを纏わせると、アイテム欄に「つける／はずす／縮める」が出ます。1つ目に引き寄せ先（駒かマス）、2つ目に引き寄せたい駒をつけて「縮める」と、2つ目の駒が1つ目の方へ飛んでいきます（空きマスならそのマスへ、駒ならその手前へ）。</p>
-    <p class="sub">アイテム戦では玉を取ったら勝ちです（二刀流の2手目、伏せたカードの発動などで起こります）。打ち歩詰めと千日手の判定はありません。練習盤では全部のアイテムを何度でも使えます。</p>
+    <p class="sub">アイテム戦では玉を取ったら勝ちです（二刀流の2手目、伏せたカードの発動などで起こります）。打ち歩詰めと千日手の判定はありません。</p>
     <p class="sub">カットイン画像は、このパソコンのブラウザの中だけに保存されます。相手や公開ページには送られず、相手の画面では標準のカットインが出ます。</p>
     <div class="actions" style="display:flex;justify-content:flex-end"><button class="btn primary" data-act="close-modal">閉じる</button></div>
   </div></div>`;
@@ -1521,7 +1550,7 @@ function sideSeg(){
   const b = (v, label, sub) => `<button data-act="side" data-v="${v}" aria-pressed="${S.sidePref === v}">${label}<small>${sub}</small></button>`;
   return `<p class="label">手番</p><div class="seg" role="group" aria-label="手番">${b('random', '振り駒', 'おまかせ')}${b('sente', '先手', '☗ 先に指す')}${b('gote', '後手', '☖ 後に指す')}</div>`;
 }
-const practiceCard = `<section class="card"><h2>ひとりで練習</h2><p class="sub">両方の駒を自分で動かせます。アイテムは全部、何度でも使えます。待ったもできます。</p><button class="btn wide" data-act="practice">練習盤をひらく</button></section>`;
+const practiceCard = `<section class="card"><h2>ひとりで練習</h2><p class="sub">両方の駒を自分で動かせます。？ボックスでアイテムを集めて試せます。待ったもできます。</p><button class="btn wide" data-act="practice">練習盤をひらく</button></section>`;
 const modePill = m => m === 'item' ? '<span class="pill item">アイテム戦</span>' : '';
 
 function renderWebLobby(){
@@ -1613,12 +1642,12 @@ function renderLobby(){
 
 function itemsPanel(pos, inf){
   if (!isItem()) return '';
-  const free = S.local || (S.cheat && inf.mySide !== null);
+  const free = S.cheat && (S.local || inf.mySide !== null), side = S.local ? pos.turn : inf.mySide;
   let list;
   if (free) list = I.ITEMS;
-  else if (inf.mySide !== null) list = pos.cards[inf.mySide];
+  else if (side !== null) list = pos.cards[side];
   else return '';
-  const act = canAct() && (free || pos.turn === inf.mySide);
+  const act = canAct() && (S.local || pos.turn === inf.mySide);
   const cards = list.map(it => {
     const ok = act && I.canUse(pos, it, free);
     return `<button class="icard${S.itemPick === it ? ' on' : ''}" data-item="${it}" title="${esc(I.INFO[it].name)}" ${ok ? '' : 'disabled'}>${ICON[it]}<span>${I.INFO[it].short}</span></button>`;
@@ -1628,7 +1657,7 @@ function itemsPanel(pos, inf){
   else if (S.gumPick) desc = `バンジーガム：ガムをつける${pos.gum[pos.turn].length ? '2つ目（引き寄せたい駒）' : '1つ目（引き寄せ先の駒かマス）'}を選んでください（Escで取り消し）`;
   else if (!free && act && pos.cardUsed) desc = 'このターンはもうカードを使いました。';
   // Bungee Gum controls appear once the side to move has a piece wearing the aura
-  const gumSide = free ? pos.turn : inf.mySide;
+  const gumSide = side;
   let gum = '';
   if (gumSide !== null && I.hasGum(pos.board, gumSide)){
     const mine = act && pos.turn === gumSide, n = pos.gum[gumSide].length;
@@ -1637,7 +1666,7 @@ function itemsPanel(pos, inf){
       <button class="btn sm" data-gum="d" ${mine && I.canGum(pos, 'd') ? '' : 'disabled'}>はずす</button>
       <button class="btn sm" data-gum="c" ${mine && I.canGum(pos, 'c') ? '' : 'disabled'}>縮める</button></div>`;
   }
-  return `<div class="items"><div class="head"><span>アイテム</span><span class="pill">${S.local ? '練習：使い放題' : free ? 'コマンド：使い放題' : `${list.length}/${I.HAND_MAX}枚`}</span></div>
+  return `<div class="items"><div class="head"><span>アイテム</span><span class="pill">${free ? 'コマンド：使い放題' : `${list.length}/${I.HAND_MAX}枚`}</span></div>
     ${list.length ? `<div class="cardgrid">${cards}</div>` : '<div class="sub" style="color:var(--muted);font-size:12.5px">盤上の ？ボックスに駒を進めると手に入ります。</div>'}
     ${gum}<div class="idesc" id="idesc">${esc(desc)}</div></div>`;
 }
@@ -1732,10 +1761,13 @@ function renderGame(){
     const pid = S.local ? null : (side === 0 ? g?.sente : g?.gote);
     const name = S.local ? SIDE[side] : nameOf(pid);
     const on = S.room && !S.local && pid && S.online.has(pid);
-    const who = `<div class="who">${BIRD[side]}<div class="nm"><b>${S.room && !S.local && pid ? `<i class="dot${on ? ' on' : ''}"></i>` : ''}${esc(name)}</b><span id="clock-${side}">0:00</span></div></div>`;
+    const who = `<div class="who" data-side="${side}">${BIRD[side]}<div class="nm"><b>${S.room && !S.local && pid ? `<i class="dot${on ? ' on' : ''}"></i>` : ''}${esc(name)}</b><span id="clock-${side}">0:00</span></div></div>`;
     let extra = '';
     if (item){
       if (pos.dual && pos.turn === side) extra += `<span class="fxchip" title="二刀流：あと${2 - pos.moved}手">${ICON.dual}</span>`;
+      // graveyard: this side's pieces crushed by Galaxy Impact
+      const dead = pos.crushed?.[1 - side] || [];
+      if (dead.length) extra += `<span class="grave" id="grave-${side}" title="墓地：${dead.map(t => E.NAMES[t]).join('・')}">${GRAVE}<span class="cnt">${dead.length}</span></span>`;
       extra += `<div class="bcards">${pos.cards[side].map(it => canSee(side) ? `<span class="bcard" title="${I.INFO[it].name}">${ICON[it]}</span>` : '<span class="bcard back">?</span>').join('')}</div>`;
     }
     return `<div class="band${isTurn ? ' turn' : ''}${isTurn && S.flash ? ' flash' : ''}">${who}<div class="hand">${hp}</div>${extra}<div class="badge ${side === 0 ? 'sente' : 'gote'}">${SIDE[side]}</div></div>`;
@@ -1846,7 +1878,7 @@ setInterval(tick, 1000);
 /* ---------- effects ---------- */
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 function cellCenter(sq){ const r = document.querySelector(`.cell[data-sq="${sq}"]`)?.getBoundingClientRect(); return r && {x: r.left + r.width/2, y: r.top + r.height/2, w: r.width, h: r.height}; }
-function gridBox(){ return document.getElementById('grid')?.getBoundingClientRect(); }
+function gridBox(){ return (document.getElementById('demoGrid') || document.getElementById('grid'))?.getBoundingClientRect(); }
 function fx(cls, html, style, ms){
   const d = document.createElement('div'); d.className = 'fx ' + cls; d.innerHTML = html || '';
   Object.assign(d.style, style || {}); document.body.appendChild(d);
@@ -2144,7 +2176,7 @@ async function fxGalaxy(from, to){
   fx('fx-shock', '', {left: b.x + 'px', top: b.y + 'px'}, 650);
   particles(b); crack(b);
   banner('ギャラクシーインパクト！！', 'red', {x: b.x, y: Math.max(50, b.y - b.h * 1.4)});
-  const table = document.querySelector('.table'); table?.classList.remove('shake'); void table?.offsetWidth; table?.classList.add('shake');
+  const table = document.querySelector('.demo-table') || document.querySelector('.table'); table?.classList.remove('shake'); void table?.offsetWidth; table?.classList.add('shake');
   await wait(2000);
   dark.classList.add('out');
   await wait(350);
@@ -2153,6 +2185,8 @@ async function fxGalaxy(from, to){
       [{scale: .2, opacity: 0, filter: 'brightness(3) drop-shadow(0 0 12px #ff3b2f)'}, {scale: 1.3, opacity: 1, offset: .6}, {scale: 1, opacity: 1, filter: 'none'}],
       {duration: 650, easing: 'cubic-bezier(.2,1.4,.4,1)'});
     ring(to, '#FF3B2F');
+    const tg = document.querySelector('.grave.new') ; tg?.classList.add('rise');
+    for (const g of document.querySelectorAll('.grave')) g.animate([{scale: .3, opacity: 0}, {scale: 1.25, opacity: 1, offset: .6}, {scale: 1}], {duration: 700, easing: 'ease-out'});
   };
 }
 async function fxGigaSpin(from, sqs){
@@ -2166,6 +2200,7 @@ async function fxGigaSpin(from, sqs){
   await wait(560);
 }
 async function fxGumPull(from, to, anchor){
+  await cutin('gum');
   const pc = document.querySelector(`.cell[data-sq="${from}"] .pc`), a = cellCenter(from), b = cellCenter(to), k = cellCenter(anchor);
   if (!pc || !a || !b) return;
   SFX.gum();
@@ -2186,6 +2221,149 @@ async function fxGumPull(from, to, anchor){
   SFX.boing();
   await wait(120);
   anim.cancel();
+}
+
+/* ---------- item demo: a small stage with your piece and an opponent's piece ---------- */
+let demoTok = 0;
+function demoCells(pcs, st, gum){
+  let cells = '';
+  for (let i = 0; i < 15; i++){
+    const pc = pcs[i];
+    let inner = '';
+    if (pc){
+      if (pc.float != null) inner += '<i class="aura gold"></i><i class="aura shadow"></i>';
+      if (pc.star === 0) inner += '<i class="aura rainbow"></i>';
+      if (pc.aura) inner += '<i class="aura ssj"><b></b><b></b><b></b><b></b><b></b><u></u><u></u><u></u></i>';
+      if (pc.gum) inner += '<i class="aura nen"></i>';
+      if (pc.impact) inner += '<i class="aura haki"></i>';
+      inner += pieceHtml(pc, pc.s === 1, st);
+      if (pc.mush) inner += `<span class="mini-b tl">${ICON.mush}</span>`;
+      if (pc.frozen != null) inner += `<span class="mini-b tr">${ICON.volt}</span>`;
+      if (pc.trap) inner += `<span class="mini-b bl">${ICON.ge}</span>`;
+    }
+    cells += `<div class="cell" data-sq="d${i}">${inner}</div>`;
+  }
+  let g = '';
+  if (gum && gum.length){
+    const pt = i => [i % 5 + .5, ((i / 5) | 0) + .5];
+    const [a, b] = gum.length === 2 ? gum.map(pt) : [pt(gum[1] ?? 10), pt(gum[0])];
+    const d = `M${a[0]} ${a[1]} Q${(a[0] + b[0]) / 2} ${(a[1] + b[1]) / 2 + .3} ${b[0]} ${b[1]}`;
+    g = `<svg class="gumlayer" viewBox="0 0 5 3" preserveAspectRatio="none"><path d="${d}" stroke="#A3226B" stroke-width="12" opacity=".55"/><path d="${d}" stroke="#FF7EC2" stroke-width="8"/><path d="${d}" stroke="#FFD0EA" stroke-width="2.5"/></svg>`;
+  }
+  return cells + g;
+}
+function openDemo(item){
+  S.modal = null; render();
+  const tok = ++demoTok;
+  $('#demoRoot').innerHTML = `<div class="demo"><div class="card demo-card"><div class="demo-head"><b>${esc(I.INFO[item].name)}</b><span class="sub">下が自分の駒、上が相手の駒です</span></div>
+    <div class="table demo-table"><div class="wood"><div class="grid demo-grid" id="demoGrid"></div></div></div>
+    <div class="actions" style="display:flex;gap:8px;justify-content:center;margin-top:14px"><button class="btn" data-act="demo-again" data-k="${item}">もう一度</button><button class="btn primary" data-act="demo-close">閉じる</button></div></div></div>`;
+  demoRun(item, tok).catch(() => {});
+}
+function closeDemo(){ demoTok++; $('#demoRoot').innerHTML = ''; S.modal = 'rules'; render(); }
+async function demoRun(item, tok){
+  const own = t => ({t, s:0, p:false}), en = t => ({t, s:1, p:false});
+  const st = {T:0, dual:false};
+  let pcs = {}, gum = null;
+  const draw = () => { if (tok !== demoTok) throw 0; $('#demoGrid').innerHTML = demoCells(pcs, st, gum); };
+  const pause = async ms => { await wait(ms); if (tok !== demoTok) throw 0; };
+  const cellPc = i => document.querySelector(`#demoGrid .cell[data-sq="d${i}"] .pc`);
+  const delta = (a, b) => { const p = cellCenter('d' + a), q = cellCenter('d' + b); return [q.x - p.x, q.y - p.y]; };
+  const move = async (a, b) => {
+    const [dx, dy] = delta(a, b), el = cellPc(a);
+    await el?.animate([{translate: '0 0'}, {translate: `${dx}px ${dy}px`}], {duration: 320, easing: 'ease-in-out', fill: 'forwards'}).finished;
+    if (pcs[b]) ring('d' + b, '#ff8a3d');
+    pcs[b] = pcs[a]; delete pcs[a]; clack(); draw();
+  };
+  const lunge = async (a, b) => {
+    const [dx, dy] = delta(a, b), el = cellPc(a);
+    await el?.animate([{translate: '0 0'}, {translate: `${dx * .7}px ${dy * .7}px`, offset: .5}, {translate: '0 0'}], {duration: 520, easing: 'ease-in-out'}).finished;
+  };
+  switch (item){
+    case 'dual':
+      pcs = {12: own('G'), 2: en('S')}; draw(); await pause(500);
+      await cutin('dual'); pcs[12].dual = 0; st.dual = true; draw(); growDeco('d12', 'dual'); fxSwords(); SFX.slash(); await pause(1500);
+      await move(12, 7); await pause(250); await move(7, 2); banner('2回続けて動ける！', 'small'); await pause(900);
+      st.dual = false; draw(); break;
+    case 'star':
+      pcs = {12: own('P'), 2: en('P')}; draw(); await pause(500);
+      await cutin('star'); pcs[12].star = 0; draw(); fxStar('d12'); SFX.chime(); await pause(1100);
+      await move(12, 11); await pause(200); await move(11, 6); banner('全方向に1マス！', 'gold small'); await pause(900); break;
+    case 'giga':
+      pcs = {7: own('G'), 1: en('P'), 2: en('S'), 3: en('N')}; draw(); await pause(500);
+      await cutin('giga'); pcs[7].giga = true; draw(); growDeco('d7', 'giga'); banner('ギガスラッシュ 構え', 'blue'); SFX.slash(); await pause(1400);
+      await fxGigaSpin('d7', ['d2', 'd1', 'd3']); delete pcs[1]; delete pcs[3]; pcs[7].giga = false; await move(7, 2); await pause(700); break;
+    case 'mush':
+      pcs = {7: own('S'), 2: en('R')}; draw(); await pause(500);
+      await cutin('mush'); pcs[7].mush = true; draw(); ring('d7', '#E53935'); banner('パワーアップ！'); SFX.boing(); await pause(1200);
+      await lunge(2, 7); ring('d7', '#E53935'); banner('ボヨン！'); SFX.boing(); pcs[7].mush = false; draw(); await pause(900); break;
+    case 'volt':
+      pcs = {12: own('G'), 2: en('R')}; draw(); await pause(500);
+      await cutin('volt'); fxVolt('d2'); SFX.zap(); pcs[2].frozen = 1; draw(); await pause(900); banner('しびれて動けない！', 'blue small'); await pause(1000); break;
+    case 'ge':
+      pcs = {7: own('S'), 2: en('R')}; draw(); await pause(500);
+      pcs[7].trap = true; draw(); ring('d7', '#F7C948'); banner('カードを仕込んだ', 'gold small'); await pause(1300);
+      await lunge(2, 7); await cutin('ge'); fxGold('d7'); SFX.gold(); pcs[7].trap = false; pcs[7].float = 2; draw(); await pause(1300); break;
+    case 'hatsu':
+      pcs = {12: own('R'), 2: en('B')}; draw(); await pause(500);
+      await cutin('hatsu'); pcs[12].aura = true; draw(); fxHatsu('d12'); SFX.power(); banner('発！', 'white'); await pause(1500);
+      banner('アイテム攻撃を受けない', 'white small'); await pause(1000); break;
+    case 'gum':
+      pcs = {10: own('B'), 4: en('G')}; draw(); await pause(500);
+      await cutin('gum'); pcs[10].gum = true; draw(); ring('d10', '#FF6FB5'); SFX.gum(); await pause(900);
+      gum = [12]; draw(); ring('d12', '#FF6FB5'); SFX.gum(); await pause(700);
+      gum = [12, 4]; draw(); ring('d4', '#FF6FB5'); SFX.gum(); await pause(800);
+      await fxGumPull('d4', 'd12', 'd12'); gum = null; pcs[12] = pcs[4]; delete pcs[4]; draw(); await pause(900); break;
+    case 'impact':
+      pcs = {7: own('G'), 2: en('R')}; draw(); await pause(500);
+      pcs[7].impact = true; draw(); fxHakiCharge('d7'); banner('覇気を纏った', 'red small'); SFX.charge(); await pause(1400);
+      await fxGalaxy('d7', 'd2'); pcs[7].impact = false; pcs[2] = pcs[7]; delete pcs[7]; draw(); S.postFx?.(); S.postFx = null; await pause(900); break;
+  }
+}
+
+/* ---------- just for fun: things you can throw at the other player ---------- */
+const GRAVE = `<svg viewBox="0 0 48 56" aria-hidden="true"><path d="M8 52 V22 C8 10 16 4 24 4 C32 4 40 10 40 22 V52 Z" fill="#9AA3AD" stroke="#4b5560" stroke-width="2.5" stroke-linejoin="round"/><path d="M12 50 V23 C12 13 18 8 24 8" stroke="#c4ccd4" stroke-width="2" fill="none" stroke-linecap="round"/><rect x="3" y="50" width="42" height="5" rx="2" fill="#6f7a85" stroke="#4b5560" stroke-width="2"/><text x="24" y="38" text-anchor="middle" font-size="19" font-weight="900" fill="#2f363d" font-family="Zen Maru Gothic, sans-serif">墓</text></svg>`;
+const POOP = `<svg viewBox="0 0 64 64"><path d="M32 6 C37 10 41 12 38 18 C46 18 50 24 46 30 C56 31 58 40 52 44 C60 46 60 58 50 58 H14 C4 58 4 46 12 44 C6 40 8 31 18 30 C14 24 18 18 26 18 C24 12 28 10 32 6 Z" fill="#8B5A2B" stroke="#4a2c10" stroke-width="2.5" stroke-linejoin="round"/><path d="M20 30 C28 33 38 33 46 30 M14 44 C26 48 40 48 52 44" stroke="#5e3a17" stroke-width="2" fill="none"/><circle cx="25" cy="38" r="3.6" fill="#fff"/><circle cx="39" cy="38" r="3.6" fill="#fff"/><circle cx="25.6" cy="38.6" r="1.7" fill="#222"/><circle cx="39.6" cy="38.6" r="1.7" fill="#222"/><path d="M28 47 Q32 50 36 47" stroke="#2a1608" stroke-width="2" fill="none" stroke-linecap="round"/></svg>`;
+const SPLAT = `<svg viewBox="0 0 100 100"><path d="M50 18 C58 30 70 10 74 28 C90 24 82 42 92 50 C80 56 94 72 74 70 C72 88 58 76 50 90 C42 76 28 88 26 70 C6 72 20 56 8 50 C18 42 10 24 26 28 C30 10 42 30 50 18 Z" fill="#7a4a1f" stroke="#3d220b" stroke-width="3"/></svg>`;
+const FINGER = `<svg viewBox="0 0 80 112"><g fill="#FFD9B3" stroke="#5a3a20" stroke-width="3" stroke-linejoin="round"><rect x="31" y="4" width="18" height="56" rx="9"/><rect x="13" y="42" width="18" height="26" rx="8"/><rect x="49" y="42" width="18" height="26" rx="8"/><rect x="63" y="48" width="14" height="20" rx="6"/><rect x="11" y="54" width="60" height="48" rx="17"/><path d="M13 78 C3 73 2 60 10 56 C17 53 23 62 27 68" /></g><path d="M35 12 h10" stroke="#e8b48a" stroke-width="2" stroke-linecap="round"/></svg>`;
+function birdOf(side){ return document.querySelector(`.who[data-side="${side}"] .bird`)?.getBoundingClientRect(); }
+function funFx(type, from){
+  const a = birdOf(from), b = birdOf(1 - from);
+  if (!a || !b) return;
+  const ax = a.left + a.width / 2, ay = a.top + a.height / 2, bx = b.left + b.width / 2, by = b.top + b.height / 2;
+  if (type === 'unko'){
+    const el = fx('fx-fun', POOP, {left: ax + 'px', top: ay + 'px', width: '58px', height: '58px'}, 1600);
+    tone(500, .5, 'sine', .08, 160);
+    const t0 = performance.now(), dur = 900, peak = Math.min(ay, by) - 220;
+    (function step(t){
+      const p = Math.min(1, (t - t0) / dur);
+      const x = ax + (bx - ax) * p, y = (1 - p) * (1 - p) * ay + 2 * (1 - p) * p * peak + p * p * by;
+      el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.rotate = (p * 720) + 'deg';
+      if (p < 1) requestAnimationFrame(step);
+      else {
+        el.remove(); noise(.25, 300, .8, 2.5, 'lowpass'); tone(160, .3, 'triangle', .15, 70);
+        fx('fx-fun splat', SPLAT, {left: bx + 'px', top: by + 'px', width: '120px', height: '120px'}, 900);
+        fx('fx-fun stuck', POOP, {left: bx + 'px', top: (by - 6) + 'px', width: '46px', height: '46px'}, 3200);
+        document.querySelector(`.who[data-side="${1 - from}"] .bird`)?.animate([{translate: '0 0'}, {translate: '-5px 0'}, {translate: '5px 0'}, {translate: '0 0'}], {duration: 260, iterations: 3});
+        banner('ベチャッ！', 'small', {x: bx + 60, y: by + 40});
+      }
+    })(t0);
+  } else if (type === 'fy'){
+    const left = ax < bx;
+    const el = fx('fx-fun finger', FINGER, {left: (ax + (by < ay ? 0 : 0)) + 'px', top: (ay + (by < ay ? -70 : 70)) + 'px', width: '90px', height: '126px'}, 2300);
+    el.style.setProperty('--tilt', by < ay ? '0deg' : '180deg');
+    tone(220, .15, 'square', .06, null); tone(180, .2, 'square', .06, null, .15);
+  }
+}
+async function sendFun(type){
+  if (S.view !== 'game'){ toast('対局画面で使えます'); return; }
+  const inf = info();
+  const from = S.local ? (flippedNow() ? 1 : 0) : inf.mySide;
+  if (from === null){ toast('対局しているプレイヤーだけ使えます'); return; }
+  funFx(type, from);
+  if (S.local) return;
+  if (S.net === 'ntfy') Ntfy.post(S.gameId, {k:'fun', f:type, s:from, by:S.myId, n:rid(10)}).catch(() => {});
+  else S.room?.emit('fun', {game: S.gameId, f:type, s:from}).catch(() => {});
 }
 
 /* ---------- input ---------- */
@@ -2210,7 +2388,7 @@ document.addEventListener('pointerdown', e => {
     if (cell){
       e.preventDefault();
       const a = `~a:${E.sqToUsi(+cell.dataset.sq)}`;
-      if (I.act(getRep().pos, a, S.local)){ S.gumPick = false; doAction(a); }
+      if (I.act(getRep().pos, a, false)){ S.gumPick = false; doAction(a); }
       else toast('そこにはつけられません');
       return;
     }
@@ -2304,7 +2482,9 @@ function runCommand(raw){
   if (c === 'items' || c === 'item'){
     S.cheat = !S.cheat; lsSet('cheat', S.cheat);
     toast(S.cheat ? 'アイテム使い放題：ON（このパソコンだけ。自分の番にどのカードでも使えます）' : 'アイテム使い放題：OFF');
-  } else if (c === 'help') toast('コマンド：items（アイテム使い放題のON/OFF）');
+  } else if (c === 'unko') sendFun('unko');
+  else if (c === 'fuckyou') sendFun('fy');
+  else if (c === 'help') toast('コマンド：items（アイテム使い放題のON/OFF）、unko、fuckyou');
   else if (c) toast(`「${c}」というコマンドはありません（help で一覧）`);
   closeCmd(); render();
 }
@@ -2362,7 +2542,9 @@ document.addEventListener('click', e => {
     case 'lobby': backToLobby(); break;
     case 'rules': S.modal = 'rules'; render(); break;
     case 'close-modal': S.modal = null; render(); break;
-    case 'cutin-test': S.modal = null; render(); cutin(b.dataset.k); break;
+    case 'cutin-test': openDemo(b.dataset.k); break;
+    case 'demo-again': openDemo(b.dataset.k); break;
+    case 'demo-close': closeDemo(); break;
     case 'cutin-clear': try { localStorage.removeItem(LS + 'cutin.' + b.dataset.k); } catch {} toast('標準のカットインに戻しました'); render(); break;
     case 'flip': S.manualFlip = !S.manualFlip; render(); break;
     case 'first': setPly(0); break;
@@ -2411,6 +2593,11 @@ async function initCaps(resume){
       S.peers = ch.peers.filter(p => p.kind === 'viewer');
       S.online = new Set(S.peers.map(p => p.by || p.presence?.uid).filter(Boolean));
       render();
+    }, () => {});
+    room.on('fun', msg => {
+      const d = msg.data;
+      if (msg.sameTab || d?.game !== S.gameId || !['unko', 'fy'].includes(d?.f) || ![0, 1].includes(d?.s)) return;
+      funFx(d.f, d.s);
     }, () => {});
     room.on('moved', msg => {
       if (msg.sameTab || msg.data?.game !== S.gameId || !S.gameRef) return;
