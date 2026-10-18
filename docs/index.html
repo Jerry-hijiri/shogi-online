@@ -1031,6 +1031,11 @@ const ItemShogi = (() => {
       const n = clone(st); n.noBoxes = true; n.boxes = [];
       return {st:n, ev:[{type:'boxesoff', side:s}], text:'？ボックスを無しにした', pub:null, item:true};
     }
+    if (a === '#Y'){
+      if (!st.noBoxes) return null;
+      const n = clone(st); n.noBoxes = false; spawnBox(n); spawnBox(n);
+      return {st:n, ev:[{type:'boxesback', side:s}], text:'？ボックスを有りにした', pub:null, item:true};
+    }
     if (a === '#B'){
       // both players turned the card command on: boxes appear and free use ends for good
       if (st.boxesOn && st.noFree) return null;
@@ -1578,12 +1583,13 @@ function applyDestroy(){
   doAction('#D');
 }
 function applyNoBox(){
-  if (!S.noBoxQueued || S.noBoxQueued !== (S.local ? 'local' : S.gameId)) return;
+  const q = S.boxQueued;
+  if (!q || q.g !== (S.local ? 'local' : S.gameId)) return;
   const pos = getRep().pos;
-  if (pos.noBoxes){ S.noBoxQueued = null; return; }
+  if ((q.a === '#N') === !!pos.noBoxes){ S.boxQueued = null; return; }
   if (!canAct()) return;
-  S.noBoxQueued = null;
-  doAction('#N');
+  S.boxQueued = null;
+  doAction(q.a);
 }
 function maybeBoth(){
   const g = S.game;
@@ -1791,7 +1797,7 @@ function render(){
 const COMMANDS = [
   ['item', 'カード戦の表示', () => S.cheat],
   ['irespecthijirisansomuch', 'カード使い放題', () => S.unlimited],
-  ['noitem', '？ボックスを無しに（相手に出ない）'],
+  ['itembox', '？ボックスの有り/無し（相手に出ない）', () => S.view === 'game' && isItem() && !getRep().pos.noBoxes],
   ['destroy', '相手の持ち札を全て破壊'],
   ['unko', 'うんこを投げる'],
   ['fuckyou', '中指を立てる'],
@@ -2258,6 +2264,7 @@ async function playEv(ev){
     case 'zaoriku': return fxZaoriku(ev.sq, ev.side);
     case 'meteor': return fxMeteor(ev.target, ev.n);
     case 'boxesoff': if (canSee(ev.side)) banner('？ボックスを無しにしました', 'small'); break;
+    case 'boxesback': if (canSee(ev.side)) banner('？ボックスを有りにしました', 'small'); break;
     case 'boxeson': banner('カード戦スタート！', 'gold'); SFX.roulette(); for (const b of document.querySelectorAll('.ibox')) b.animate([{scale: 0}, {scale: 1.3, offset: .6}, {scale: 1}], {duration: 600}); break;
     case 'box': fxRoulette(ev.item, !canSee(ev.side)); SFX.roulette(); break;
     case 'boxlost': ring(ev.sq, '#999'); banner('持ちきれない！', 'small'); break;
@@ -3005,11 +3012,15 @@ function runCommand(raw){
     else if (!S.local && info().mySide === null) toast('対局しているプレイヤーだけ使えます');
     else { S.destroyQueued = S.local ? 'local' : S.gameId; toast(canAct() ? '隕石を落とします！' : '自分の番になったら隕石を落とします'); closeCmd(); applyDestroy(); return; }
   }
-  else if (c === 'noitem' || c === 'noitems'){
+  else if (c === 'itembox'){
     if (S.view !== 'game' || !isItem()) toast('カード戦の対局中に使えます');
     else if (!S.local && info().mySide === null) toast('対局しているプレイヤーだけ使えます');
-    else if (getRep().pos.noBoxes) toast('？ボックスはすでに無しです');
-    else { S.noBoxQueued = S.local ? 'local' : S.gameId; toast(canAct() ? '？ボックスを無しにしました（相手には表示されません）' : '自分の番になったら？ボックスを無しにします（相手には表示されません）'); closeCmd(); applyNoBox(); return; }
+    else {
+      const off = !getRep().pos.noBoxes;
+      S.boxQueued = {g: S.local ? 'local' : S.gameId, a: off ? '#N' : '#Y'};
+      toast((canAct() ? '' : '自分の番になったら') + (off ? '？ボックスを無しにします' : '？ボックスを有りにします') + '（相手には表示されません）');
+      closeCmd(); applyNoBox(); return;
+    }
   }
   else if (['kingbombee', 'kingbonbee', 'kingbonby', 'bombee', 'キングボンビー'].includes(c)) sendFun('kb');
   closeCmd(); render();
