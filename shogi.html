@@ -223,7 +223,7 @@ button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px so
 .fx-fun.finger{rotate:var(--tilt,0deg);animation:finger 2.3s cubic-bezier(.2,1.5,.4,1) forwards}
 @keyframes finger{0%{scale:0}12%{scale:1.15}20%{scale:1}30%{translate:0 -6px}38%{translate:0 0}46%{translate:0 -6px}54%{translate:0 0}85%{opacity:1}100%{opacity:0}}
 .cut-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}
-.cmdlist{position:fixed;left:calc(10px + env(safe-area-inset-left, 0px));top:84px;z-index:60;width:200px;background:rgba(42,32,24,.94);color:#FFF4D6;border-radius:14px;padding:10px 8px;box-shadow:0 10px 30px rgba(0,0,0,.3);font-size:12px}
+.cmdlist{position:fixed;left:calc(10px + env(safe-area-inset-left, 0px));top:84px;z-index:60;width:200px;max-height:calc(100vh - 100px);overflow-y:auto;box-sizing:border-box;background:rgba(42,32,24,.94);color:#FFF4D6;border-radius:14px;padding:10px 8px;box-shadow:0 10px 30px rgba(0,0,0,.3);font-size:12px}
 body.cl-on .top,body.cl-on #lobby,body.cl-on #game{padding-left:220px;box-sizing:border-box}
 .cl-sec{margin:8px 6px 4px;padding-top:8px;border-top:1px dashed rgba(255,208,138,.4);color:#FFD08A;font-size:11px;font-weight:900;letter-spacing:.08em}
 .cl-head{display:flex;flex-direction:column;gap:1px;padding:0 6px 8px;border-bottom:1px solid rgba(255,244,214,.15);margin-bottom:6px}
@@ -358,6 +358,26 @@ body.cl-on .top,body.cl-on #lobby,body.cl-on #game{padding-left:220px;box-sizing
 @keyframes domeout{to{scale:.1;opacity:0}}
 .fx-flash.cyan{background:#dff8ff}
 .cell.tgt.roomt::before{box-shadow:0 0 0 3px #38B6E8,0 0 14px #7FE0FF}
+
+/* present, kamui */
+.fx-fun.bunny{width:110px;height:150px}
+.fx-fun.bunny .bun{position:absolute;inset:0}
+.fx-fun.bunny .bun svg{width:100%;height:100%}
+.fx-fun.bunny .box{position:absolute;left:58%;top:58%;width:54px;height:50px}
+.fx-fun.bunny .box svg{width:100%;height:100%}
+.fx-fun.bunny .box.open{animation:boxopen .6s cubic-bezier(.2,1.6,.4,1) forwards}
+@keyframes boxopen{40%{scale:1.3;rotate:-8deg}100%{scale:1.1;rotate:0deg}}
+.fx-dark.kamui{background:radial-gradient(circle at 50% 45%,rgba(40,0,6,.5),rgba(5,0,2,.9))}
+.fx-eye{left:50%;top:38%;transform:translate(-50%,-50%);width:min(520px,60vw);z-index:89;filter:drop-shadow(0 0 30px rgba(255,40,40,.6));animation:eyeopen .7s cubic-bezier(.2,1.2,.4,1) both}
+.fx-eye svg{width:100%;height:auto;display:block}
+.fx-eye .iris{transform-origin:120px 60px;animation:spin 1.2s linear infinite}
+.fx-eye.out{animation:eyeclose .5s ease-in forwards}
+@keyframes eyeopen{from{scale:1 0;opacity:0}to{scale:1 1;opacity:1}}
+@keyframes eyeclose{to{scale:1 0;opacity:0}}
+.fx-vortex{z-index:87;width:220px;height:220px;transform:translate(-50%,-50%);border-radius:50%;
+  background:repeating-conic-gradient(from 0deg,rgba(20,0,30,.9) 0 18deg,rgba(120,40,160,.45) 18deg 36deg);-webkit-mask:radial-gradient(circle,#000 10%,rgba(0,0,0,.8) 45%,transparent 70%);mask:radial-gradient(circle,#000 10%,rgba(0,0,0,.8) 45%,transparent 70%);
+  animation:vortex 2.2s ease-in-out forwards}
+@keyframes vortex{0%{scale:0;rotate:0deg;opacity:0}20%{scale:1;opacity:1}80%{opacity:1}100%{scale:.2;rotate:1080deg;opacity:0}}
 
 /* shenron, protein, revive */
 .fx-dark.shenron{background:radial-gradient(circle at 50% 40%,rgba(20,60,30,.45),rgba(2,10,5,.92))}
@@ -791,9 +811,9 @@ const Shogi = (() => {
 // Actions: USI moves, "@item[:sq]" card use, "~a:sq" / "~d" / "~c" Bungee Gum attach / detach / contract.
 const ItemShogi = (() => {
   const B = Shogi;
-  const ITEMS = ['dual','star','giga','mush','volt','ge','hatsu','gum','impact','shimon','zaoriku','room','note','shenron'];
-  // box draws must not change for older games: v3 added the Death Note, v4 Shenron
-  const poolFor = st => st.rv >= 4 ? ITEMS : st.rv >= 3 ? ITEMS.slice(0, 13) : ITEMS.slice(0, 12);
+  const ITEMS = ['dual','star','giga','mush','volt','ge','hatsu','gum','impact','shimon','zaoriku','room','note','shenron','kamui'];
+  // box draws must not change for older games: v3 added the Death Note, v4 Shenron, v5 Kamui
+  const poolFor = st => ITEMS.slice(0, st.rv >= 5 ? 15 : st.rv >= 4 ? 14 : st.rv >= 3 ? 13 : 12);
   const INFO = {
     dual:   {name:'二刀流', short:'二刀流', need:'own', desc:'自分の駒1枚から手が生え、剣を2本装備する。このターン、その駒を2回続けて動かせる（持ち駒は打てない）。'},
     star:   {name:'スター', short:'スター', need:'own', desc:'自分の駒1枚が、このターンだけ全方向に1マス動けるようになる。'},
@@ -804,6 +824,7 @@ const ItemShogi = (() => {
     hatsu:  {name:'発', short:'発', need:'own', desc:'自分の駒1枚が白いオーラを纏う。纏った駒は相手のカードの攻撃を受けない（10万ボルトの対象にならない、ギガスラッシュの巻き添えにならない、拳骨衝突でも粉砕されず普通に取られるだけ）。'},
     gum:    {name:'バンジーガム', short:'バンジーガム', need:'own', desc:'自分の駒1枚がガムのオーラを纏い、バンジーガムを操れるようになる。ガムを2か所（駒かマス）につけて縮めると、2つ目につけた駒が1つ目の方へ引き寄せられる。縮めるとその番の1手になる。つける・はずすは自由。'},
     impact: {name:'拳骨衝突（ギャラクシーインパクト）', short:'拳骨衝突', need:'own', desc:'理外の覇気が盤面を穿つ！ 自分の駒1枚から、その前方（同じ列）へ放つ。相手のいちばん手前の駒は粉砕されて墓地へ。その後ろに並ぶ相手の駒はすべて風で場外へ吹き飛ばされ、相手の持ち駒に戻る（玉と発のオーラの駒は影響を受けない）。'},
+    kamui:  {name:'神威', short:'神威', need:null, desc:'万華鏡写輪眼の瞳術。相手のカードをランダムで1枚、異次元空間へ吸い込んで消し去る。'},
     shenron:{name:'シェンロン', short:'シェンロン', need:'wish', desc:'七つの玉を集めて神龍を呼び出す。好きなカードを1枚選んで手に入れられる（選んだカードは相手に見えない）。'},
     note:   {name:'デスノート', short:'デスノート', need:'enemy', desc:'このノートに名前を書かれた駒は死ぬ。相手の駒（玉以外）を1枚選ぶと、その駒は息絶えて墓地へ送られる。発のオーラを纏った駒には効かない。'},
     shimon: {name:'八門遁甲の陣（死門）', short:'死門', need:'own', desc:'己の掟を貫き通す奥義。自分の銀・金・桂・香・飛・角（成っていない駒）1枚が死門を開き、ワインレッドに染まる。このターン、その駒は駒を飛び越えて盤上のどのマスへも一気に移動できる。進んだ道と移動先の駒は敵味方問わずすべて炭化して墓地へ。最後に自分の駒も炭化して消える（玉は炭化せず、玉のマスへは移動できない）。'},
@@ -833,7 +854,7 @@ const ItemShogi = (() => {
     p.board.forEach((pc, i) => { if (pc) pc.id = i + 1; });
     const st = {board:p.board, hands:p.hands, turn:0, T:0, moved:0, cardUsed:false, dual:false, room:null, nid:100,
       cards:[[],[]], boxes:[], gum:[[],[]], crushed:[[],[]], rng:(seed >>> 0) || 1, ply:0, lastTo:-1, lastFrom:-1, result:null,
-      boxesOn: !opts?.boxesOff, noFree: false, rv: opts?.rv ?? (opts?.legacyMush ? 1 : 4)};
+      boxesOn: !opts?.boxesOff, noBoxes: !!opts?.noBoxes, noFree: false, rv: opts?.rv ?? (opts?.legacyMush ? 1 : 4)};
     st.mushGuard = st.rv < 2;
     spawnBox(st); spawnBox(st);
     return st;
@@ -1008,6 +1029,7 @@ const ItemShogi = (() => {
     if (!free && !st.cards[st.turn].includes(item)) return false;
     if ((INFO[item].need === 'own' || INFO[item].need === 'enemy') && !itemTargets(st, item).length) return false;
     if (item === 'shenron' && st.rv < 4) return false;
+    if (item === 'kamui' && (st.rv < 5 || !st.cards[1 - st.turn].length)) return false;
     return true;
   }
 
@@ -1107,6 +1129,16 @@ const ItemShogi = (() => {
       const n = clone(st); n.noBoxes = true; n.boxes = [];
       return {st:n, ev:[{type:'boxesoff', side:s}], text:'？ボックスを無しにした', pub:null, item:true};
     }
+    if (a.startsWith('#P')){
+      const m = /^#P(!?):(\w+)$/.exec(a);
+      if (!m || !ITEMS.includes(m[2])) return null;
+      const gift = m[2], fr = m[1] === '!';
+      if ((fr && st.noFree) || (!fr && !st.cards[s].includes(gift)) || st.cards[1 - s].length >= HAND_MAX) return null;
+      const n = clone(st);
+      if (!fr) n.cards[s].splice(n.cards[s].indexOf(gift), 1);
+      n.cards[1 - s].push(gift);
+      return {st:n, ev:[{type:'present', side:s, to:1 - s, item:gift}], text:`プレゼント：「${INFO[gift].name}」を贈った`, pub:`プレゼント：「${INFO[gift].name}」が届いた！`, item:true};
+    }
     if (a === '#R'){
       // hidden command: strip every special effect from every piece on the board
       const n = clone(st); let cnt = 0;
@@ -1153,6 +1185,19 @@ const ItemShogi = (() => {
       let body = a.slice(1);
       if (body[0] === '!'){ if (st.noFree) return null; free = true; body = body.slice(1); }
       const [item, u] = body.split(':');
+      if (item === 'zaoriku' && /^[RBGSNLP]$/.test(u || '')){
+        if (st.rv < 4 || st.result || st.cardUsed || st.moved > 0 || (!free && !st.cards[s].includes('zaoriku')) || !st.crushed[1 - s].includes(u)) return null;
+        const n = clone(st);
+        n.crushed[1 - s].splice(n.crushed[1 - s].indexOf(u), 1);
+        n.hands[s][u]++;
+        if (!free) n.cards[s].splice(n.cards[s].indexOf('zaoriku'), 1);
+        n.cardUsed = true;
+        // reviving into your hand uses up your turn
+        const ev = [{type:'zaorevive', side:s, t:u, hand:true}];
+        endTurn(n); finish(n, ev);
+        const text = `ザオリク（墓地の${B.NAMES[u]}を持ち駒へ）`;
+        return {st:n, ev, text, pub:text, item:true};
+      }
       if (item === 'zaoriku' && u){
         // v4: cast Zaoriku on your graveyard: "P*5e" brings a pawn back onto 5e
         const m = /^([RBGSNLP])\*(\d[a-i])$/.exec(u);
@@ -1201,6 +1246,13 @@ const ItemShogi = (() => {
             extra = `：${B.sqName(L.first)}${pname(st.board[L.first])}を粉砕${L.blown.length ? `、${L.blown.length}枚を吹き飛ばした` : ''}`;
           } else p.impact = true;
           break;
+        case 'kamui': {
+          const idx = Math.floor(rand(n) * n.cards[1 - s].length), gone = n.cards[1 - s].splice(idx, 1)[0];
+          ev = [{type:'kamui', side:s, target:1 - s, idx, item:gone, pre:true}];
+          extra = '：相手のカード1枚を異次元へ飛ばした';
+          n.kamuiGone = gone;
+          break;
+        }
         case 'note':
           n.crushed[s].push(p.t); n.board[sq] = null;
           ev = [{type:'notekill', sq, name: B.sqName(sq) + pname(st.board[sq]), side:s, pre:true}];
@@ -1211,7 +1263,9 @@ const ItemShogi = (() => {
       if (!legal(n, true).length) return null; // never let a card leave you without a move
       const where = sq >= 0 ? `（${B.sqName(sq)}${pname(st.board[sq])}）` : '';
       const text = INFO[item].name + (item === 'volt' || item === 'note' ? ' →' + where : where) + extra;
-      return {st:n, ev, text, pub: item === 'ge' ? 'カードを伏せた' : text, item:true};
+      let pub = item === 'ge' ? 'カードを伏せた' : text;
+      if (item === 'kamui'){ pub = `神威：あなたの「${INFO[n.kamuiGone].name}」が異次元へ飛ばされた`; delete n.kamuiGone; }
+      return {st:n, ev, text, pub, item:true};
     }
     const mv = legal(st).find(m => moveUsi(m) === a);
     if (!mv) return null;
@@ -1370,6 +1424,7 @@ const ICON = {
   room: `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M3 38 A21 21 0 0 1 45 38 Z" fill="rgba(110,215,255,.45)" stroke="#2a8fc0" stroke-width="2"/><path d="M9 34 A16 16 0 0 1 22 20" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round" opacity=".8"/><rect x="2" y="37" width="44" height="4" rx="2" fill="#2a8fc0"/><path d="M17 30 h6 l-3 -4 M31 30 h-6 l3 4" stroke="#0b3d5c" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
   note: `<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="9" y="4" width="30" height="40" rx="2.5" fill="#141414" stroke="#000" stroke-width="2"/><rect x="11" y="4" width="3" height="40" fill="#2a2a2a"/><text x="26.5" y="21" font-size="6.6" font-weight="900" text-anchor="middle" fill="#eaeaea" font-family="Georgia, serif" letter-spacing=".4">DEATH</text><text x="26.5" y="29" font-size="6.6" font-weight="900" text-anchor="middle" fill="#eaeaea" font-family="Georgia, serif" letter-spacing=".4">NOTE</text></svg>`,
   shenron: `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8 44 C2 30 22 30 16 18 C12 10 22 4 30 8 C38 12 34 22 40 22" fill="none" stroke="#1f5a2a" stroke-width="8" stroke-linecap="round"/><path d="M8 44 C2 30 22 30 16 18 C12 10 22 4 30 8 C38 12 34 22 40 22" fill="none" stroke="#3fae4f" stroke-width="5" stroke-linecap="round"/><circle cx="40" cy="22" r="6" fill="#3fae4f" stroke="#1f5a2a" stroke-width="2"/><circle cx="41.5" cy="20.5" r="1.6" fill="#ff2a2a"/><circle cx="12" cy="38" r="4.5" fill="#ffb52e" stroke="#9a4a05" stroke-width="1"/><circle cx="24" cy="40" r="4.5" fill="#ffb52e" stroke="#9a4a05" stroke-width="1"/><circle cx="36" cy="40" r="4.5" fill="#ffb52e" stroke="#9a4a05" stroke-width="1"/></svg>`,
+  kamui: `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M2 24 C12 8 36 8 46 24 C36 40 12 40 2 24 Z" fill="#f6f1ea" stroke="#1a1a1a" stroke-width="2.5"/><circle cx="24" cy="24" r="11" fill="#c4141c" stroke="#1a1a1a" stroke-width="2"/><path d="M24 24 C31 17 32 13 28 13 C31 19 28 21 24 24 Z M24 24 C23 33 20 35 18 32 C23 32 24 29 24 24 Z M24 24 C15 21 13 18 16 15 C17 21 20 22 24 24 Z" fill="#1a1a1a"/><circle cx="24" cy="24" r="2.4" fill="#1a1a1a"/></svg>`,
 };
 // Arms and swords around a piece. Coordinates: the piece fills x 50-150, y 16-124 of a 200x140 box.
 const ARM = (x1, y1, cx, cy, x2, y2) => `<path d="M${x1} ${y1} Q${cx} ${cy} ${x2} ${y2}" stroke="#3a2a1a" stroke-width="19" fill="none" stroke-linecap="round"/><path d="M${x1} ${y1} Q${cx} ${cy} ${x2} ${y2}" stroke="#FFE1BD" stroke-width="12" fill="none" stroke-linecap="round"/><circle cx="${x2}" cy="${y2}" r="12" fill="#FFE1BD" stroke="#3a2a1a" stroke-width="3.5"/>`;
@@ -1486,8 +1541,8 @@ function replayFor(mode, moves, seed, free, opts){
     events: r.kifu.map(() => []), result: r.result, invalid: r.invalid};
 }
 function getRep(){
-  const bx = !S.local && !!S.game?.bx, rv = S.local ? (S.localRv || 4) : (S.game?.rv || 1), mv = curMoves(), k = curMode() + '|' + curSeed() + '|' + bx + rv + '|' + mv.join(' ');
-  if (S.repKey !== k){ S.rep = replayFor(curMode(), mv, curSeed(), false, {boxesOff: bx, rv}); S.repKey = k; }
+  const bx = !S.local && !!S.game?.bx, nb = S.local ? !!S.localNb : !!S.game?.nb, rv = S.local ? (S.localRv || 4) : (S.game?.rv || 1), mv = curMoves(), k = curMode() + '|' + curSeed() + '|' + bx + nb + rv + '|' + mv.join(' ');
+  if (S.repKey !== k){ S.rep = replayFor(curMode(), mv, curSeed(), false, {boxesOff: bx, noBoxes: nb, rv}); S.repKey = k; }
   return S.rep;
 }
 function legalMoves(){
@@ -1527,7 +1582,7 @@ async function doAction(a){
   }
   const g = S.game; if (!g) return;
   const moves = [...(g.moves || []), a], stamps = [...(g.stamps || []), Date.now()];
-  const rep = replayFor(g.mode || 'normal', moves, g.seed || 1, false, {boxesOff: !!g.bx, rv: g.rv || 1});
+  const rep = replayFor(g.mode || 'normal', moves, g.seed || 1, false, {boxesOff: !!g.bx, noBoxes: !!g.nb, rv: g.rv || 1});
   if (rep.invalid){ toast('その操作はできません'); render(); return; }
   if (S.net === 'ntfy'){ Ntfy.send({k:'act', i: moves.length - 1, a, t: stamps[stamps.length - 1], by: S.myId}); return; }
   const patch = {moves, stamps, updatedAt: Date.now(), turn: rep.pos.turn};
@@ -1574,11 +1629,11 @@ function pickTarget(sq){
 
 /* ---------- local practice ---------- */
 const practiceKey = () => S.cheat ? 'practice3' : 'practiceN';
-function saveLocal(){ lsSet(practiceKey(), {m:S.localMoves, t:S.localStamps, s:S.localStart, seed:S.localSeed, rv:S.localRv}); }
+function saveLocal(){ lsSet(practiceKey(), {m:S.localMoves, t:S.localStamps, s:S.localStart, seed:S.localSeed, rv:S.localRv, nb:S.localNb}); }
 function openLocal(){
   const d = lsGet(practiceKey(), null);
-  if (d){ S.localMoves = d.m || []; S.localStamps = d.t || []; S.localStart = d.s || Date.now(); S.localSeed = d.seed || 1; S.localRv = d.rv || 2; }
-  else { S.localMoves = []; S.localStamps = []; S.localSeed = (Math.random() * 2**32) >>> 0; S.localStart = Date.now(); S.localRv = 4; }
+  if (d){ S.localMoves = d.m || []; S.localStamps = d.t || []; S.localStart = d.s || Date.now(); S.localSeed = d.seed || 1; S.localRv = d.rv || 2; S.localNb = !!d.nb; }
+  else { S.localMoves = []; S.localStamps = []; S.localSeed = (Math.random() * 2**32) >>> 0; S.localStart = Date.now(); S.localRv = 5; S.localNb = true; }
   closeGame();
   Object.assign(S, {view:'game', local:true, gameId:null, game:null, viewPly:null, sel:null, promo:null, itemPick:null, confirm:null, manualFlip:false, animSeen:null});
   setPresence(); render(); playNew();
@@ -1596,7 +1651,7 @@ function reduceMsgs(list){
       const both = !!(d.g.sente && d.g.gote), t = d.t || d._t * 1000;
       g = {mode: d.g.mode === 'normal' ? 'normal' : 'item', seed: (d.g.seed >>> 0) || 1, sente: d.g.sente || null, gote: d.g.gote || null,
         names: {...(d.g.names || {})}, creator: d.by, status: both ? 'playing' : 'waiting', moves: [], stamps: [], result: null,
-        createdAt: t, startedAt: both ? t : null, updatedAt: t, furigoma: !!d.g.furigoma, bx: d.g.bx ? 1 : 0, rv: d.g.rv || 0, cmd: {...(d.g.cmd || {})}};
+        createdAt: t, startedAt: both ? t : null, updatedAt: t, furigoma: !!d.g.furigoma, bx: d.g.bx ? 1 : 0, nb: d.g.nb ? 1 : 0, rv: d.g.rv || 0, cmd: {...(d.g.cmd || {})}};
     }
     if (d.k === 'sync' && d.g && Array.isArray(d.g.moves) && (!sync || d.g.moves.length > sync.moves.length)) sync = d.g;
   }
@@ -1676,8 +1731,8 @@ const Ntfy = {
     const fake = [...this.outbox.values()].map((d, i) => ({id: 'local' + i, time: 9e12, message: JSON.stringify(d)}));
     const g = reduceMsgs([...this.msgs.values(), ...fake]);
     if (g && (g.moves.length >= saved.moves.length || g.status !== 'playing' && saved.status === 'waiting')) return;
-    const {mode, seed, sente, gote, names, status, moves, stamps, createdAt, startedAt, furigoma, bx, rv, cmd} = saved;
-    this.send({k: 'sync', g: {mode, seed, sente, gote, names, status, moves, stamps, createdAt, startedAt, furigoma, bx, rv, cmd}});
+    const {mode, seed, sente, gote, names, status, moves, stamps, createdAt, startedAt, furigoma, bx, nb, rv, cmd} = saved;
+    this.send({k: 'sync', g: {mode, seed, sente, gote, names, status, moves, stamps, createdAt, startedAt, furigoma, bx, nb, rv, cmd}});
   },
 };
 function saveRecent(g){
@@ -1685,8 +1740,8 @@ function saveRecent(g){
   const all = lsGet('games', {});
   const mySide = g.sente === S.myId ? 0 : g.gote === S.myId ? 1 : null;
   if (mySide === null && g.status !== 'waiting') { if (!all[S.gameId]) return; }
-  const {mode, seed, sente, gote, names, status, moves, stamps, createdAt, startedAt, result, furigoma, bx, rv, cmd} = g;
-  all[S.gameId] = {g: {mode, seed, sente, gote, names, status, moves, stamps, createdAt, startedAt, result, furigoma, bx, rv, cmd}, updatedAt: g.updatedAt || Date.now()};
+  const {mode, seed, sente, gote, names, status, moves, stamps, createdAt, startedAt, result, furigoma, bx, nb, rv, cmd} = g;
+  all[S.gameId] = {g: {mode, seed, sente, gote, names, status, moves, stamps, createdAt, startedAt, result, furigoma, bx, nb, rv, cmd}, updatedAt: g.updatedAt || Date.now()};
   const ids = Object.keys(all).sort((a, b) => all[b].updatedAt - all[a].updatedAt);
   for (const id of ids.slice(30)) delete all[id];
   lsSet('games', all);
@@ -1716,7 +1771,7 @@ function applyNoBox(){
   const q = S.boxQueued;
   if (!q || q.g !== (S.local ? 'local' : S.gameId)) return;
   const pos = getRep().pos;
-  if (q.a !== '#R' && (q.a === '#N') === !!pos.noBoxes){ S.boxQueued = null; return; }
+  if ((q.a === '#N' || q.a === '#Y') && (q.a === '#N') === !!pos.noBoxes){ S.boxQueued = null; return; }
   if (!canAct()) return;
   S.boxQueued = null;
   doAction(q.a);
@@ -1795,13 +1850,13 @@ async function createGame(pref, players, mode){
   if (S.net === 'ntfy'){
     const id = rid(12);
     const names = {...(players ? S.game?.names : {}), [S.myId]: S.myName.trim()};
-    try { await Ntfy.post(id, {k:'create', by:S.myId, t:now, g:{mode, seed, sente, gote, names, furigoma, bx: mode === 'item' ? 1 : 0, rv: 4, cmd: {[S.myId]: !!S.cheat}}, n:rid(10)}); }
+    try { await Ntfy.post(id, {k:'create', by:S.myId, t:now, g:{mode, seed, sente, gote, names, furigoma, bx: mode === 'item' ? 1 : 0, nb: mode === 'item' ? 1 : 0, rv: 5, cmd: {[S.myId]: !!S.cheat}}, n:rid(10)}); }
     catch (e){ toast(errText(e)); return; }
     openGame(id); return id;
   }
   const id = 'g' + now.toString(36) + Math.random().toString(36).slice(2, 6);
   const data = {sente, gote, creator: S.myId, status: sente && gote ? 'playing' : 'waiting', mode, seed, moves:[], stamps:[], result:null,
-    createdAt: now, updatedAt: now, turn: 0, furigoma, bx: mode === 'item' ? 1 : 0, rv: 4, cmd: {[S.myId]: !!S.cheat}};
+    createdAt: now, updatedAt: now, turn: 0, furigoma, bx: mode === 'item' ? 1 : 0, nb: mode === 'item' ? 1 : 0, rv: 5, cmd: {[S.myId]: !!S.cheat}};
   if (sente && gote) data.startedAt = now;
   try { await S.db.doc('games/' + id).set(data); openGame(id); return id; }
   catch (e){ toast(errText(e)); }
@@ -1940,6 +1995,7 @@ const SECRET_COMMANDS = [
   ['card', 'カードの説明を開く'],
   ['opencard', '相手のカードを表示（自分の画面だけ）', () => S.openCard],
   ['reset', '駒についた特殊効果をすべて消す（相手に出ない）'],
+  ['present', '相手にカードを1枚プレゼント'],
 ];
 function renderCmdList(){
   const el = $('#cmdList');
@@ -1950,6 +2006,14 @@ function renderCmdList(){
 }
 function pickModal(){
   const pos = getRep().pos;
+  if (S.modal === 'present'){
+    const me = S.local ? pos.turn : info().mySide, free = S.unlimited && !pos.noFree;
+    const list = free ? I.poolFor(pos) : pos.cards[me] || [];
+    const full = (pos.cards[1 - me] || []).length >= I.HAND_MAX;
+    return `<div class="modal" data-act="close-modal"><div class="card wish" role="dialog" aria-label="プレゼント"><h2>プレゼント</h2><p class="sub">${full ? '相手のカードがいっぱい（3枚）なので、いまは贈れません' : list.length ? '相手に贈るカードを1枚えらぶ' : '贈れるカードがありません'}</p>
+      <div class="cardgrid">${full ? '' : list.map(it => `<button class="icard" data-gift="${it}" data-free="${free && !(pos.cards[me] || []).includes(it) ? 1 : 0}">${ICON[it]}<span>${I.INFO[it].short}</span></button>`).join('')}</div>
+      <div class="actions" style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn" data-act="close-modal">やめる</button></div></div></div>`;
+  }
   if (S.modal === 'wish'){
     const pool = I.poolFor(pos).filter(x => x !== 'shenron');
     return `<div class="modal" data-act="close-modal"><div class="card wish" role="dialog" aria-label="シェンロン"><h2>願いを言え</h2><p class="sub">ほしいカードを1枚えらぶ</p>
@@ -1957,12 +2021,12 @@ function pickModal(){
       <div class="actions" style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn" data-act="close-modal">やめる</button></div></div></div>`;
   }
   const grave = pos.crushed[1 - pos.turn], kinds = [...new Set(grave)];
-  return `<div class="modal" data-act="close-modal"><div class="card wish" role="dialog" aria-label="ザオリク"><h2>ザオリク</h2><p class="sub">墓地から復活させる駒をえらぶ</p>
+  return `<div class="modal" data-act="close-modal"><div class="card wish" role="dialog" aria-label="ザオリク"><h2>ザオリク</h2><p class="sub">墓地から持ち駒に復活させる駒をえらぶ（この番はこれで終わります）</p>
     <div class="cardgrid">${kinds.map(t => `<button class="icard" data-revive="${t}">${pieceHtml({t, s:0, p:false}, false)}<span>${E.NAMES[t]} ×${grave.filter(x => x === t).length}</span></button>`).join('')}</div>
     <div class="actions" style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn" data-act="close-modal">やめる</button></div></div></div>`;
 }
 function renderModal(){
-  if (S.modal === 'wish' || S.modal === 'revive'){ $('#modal').innerHTML = pickModal(); return; }
+  if (S.modal === 'wish' || S.modal === 'revive' || S.modal === 'present'){ $('#modal').innerHTML = pickModal(); return; }
   if (S.modal !== 'rules'){ $('#modal').innerHTML = ''; return; }
   $('#modal').innerHTML = `<div class="modal" data-act="close-modal"><div class="card" role="dialog" aria-label="カード戦のルール">
     <h2>カード戦のルール</h2>
@@ -2418,6 +2482,7 @@ async function playEv(ev){
     case 'zaoriku': return fxZaoriku(ev.sq, ev.side);
     case 'zaorevive': return fxRevive(ev.sq, ev.side, ev.t);
     case 'shenron': return fxShenron(ev.side, ev.item);
+    case 'present': return fxPresent(ev.side, ev.to, ev.item);
     case 'reset': if (canSee(ev.side)) banner('駒の特殊効果をすべて消した', 'small'); break;
     case 'meteor': return fxMeteor(ev.target, ev.n);
     case 'boxesoff': if (canSee(ev.side)) banner('？ボックスを無しにしました', 'small'); break;
@@ -2435,6 +2500,7 @@ function playPre(ev){
   if (ev.type === 'shimondash') return fxShimon(ev.from, ev.to, ev.burnt);
   if (ev.type === 'shambles') return fxShambles(ev.a, ev.b, ev.center);
   if (ev.type === 'notekill') return fxNote(ev.sq, ev.name);
+  if (ev.type === 'kamui') return fxKamui(ev.side, ev.target, ev.idx);
   if (ev.type === 'gi2') return fxGalaxy2(ev.from, ev.crush, ev.blown, ev.side);
   return Promise.resolve();
 }
@@ -2461,7 +2527,7 @@ async function runAnim(){
         S.animPly = null; render();
         if (S.postFx){ S.postFx(); S.postFx = null; await wait(500); }
       }
-      for (const ev of evs) if (ev.type === 'zaoriku' || ev.type === 'zaorevive'){ const k = document.querySelector(`.cell[data-sq="${ev.sq}"] .pc`); if (k) k.style.visibility = 'hidden'; }
+      for (const ev of evs) if ((ev.type === 'zaoriku' || ev.type === 'zaorevive') && ev.sq != null){ const k = document.querySelector(`.cell[data-sq="${ev.sq}"] .pc`); if (k) k.style.visibility = 'hidden'; }
       if (ent.isMove) clack();
       const rest = evs.filter(e => !e.pre);
       for (const ev of rest){ await wait(120); await playEv(ev); await wait(380); }
@@ -2554,6 +2620,7 @@ const CUTIN = {
   ge:     {small:'スタンド能力', big:'ゴールド・エクスペリエンス', bg:['#261a00','#0c0800'], burst:['#fffbe0','#f7d35a','#c9921a'], bolt:'#ffe08a', line:'rgba(255,220,120,.45)', stroke:'#4d3300'},
   hatsu:  {small:'念能力', big:'発', bg:['#0e1830','#04070e'], burst:['#ffffff','#e3efff','#8fb4ff'], bolt:'#cfe2ff', line:'rgba(220,235,255,.5)', stroke:'#1d3a6b'},
   gum:    {small:'伸縮自在の愛', big:'バンジーガム', bg:['#2e0b22','#0f030b'], burst:['#ffffff','#ffc2e2','#ff5fb0'], bolt:'#ff7ec2', line:'rgba(255,170,215,.45)', stroke:'#6b0f45'},
+  kamui:  {small:'万華鏡写輪眼', big:'神威', bg:['#1a0508','#050102'], burst:['#ffd6d6','#c4141c','#3a0306'], bolt:'#ff3b3b', line:'rgba(255,90,90,.35)', stroke:'#2a0004'},
   shenron:{small:'七つの玉', big:'シェンロン', bg:['#0b1f12','#020805'], burst:['#fff6c8','#ffb52e','#3fae4f'], bolt:'#7dff8a', line:'rgba(160,255,170,.4)', stroke:'#0b3d16'},
   note:   {small:'名前を書かれた者は死ぬ', big:'デスノート', bg:['#141414','#000000'], burst:['#ffffff','#bdbdbd','#5a5a5a'], bolt:'#d9d9d9', line:'rgba(220,220,220,.35)', stroke:'#000000'},
   room:   {small:'オペオペの能力', big:'ROOM', bg:['#05223a','#020b14'], burst:['#ffffff','#bdeeff','#38b6e8'], bolt:'#7fe0ff', line:'rgba(140,225,255,.45)', stroke:'#073a5a'},
@@ -2851,6 +2918,9 @@ async function demoRun(item, tok){
       await move(2, 12); banner('玉が取られた…', 'small'); await pause(700);
       pcs[13] = {...own('K'), ghost: 9}; draw();
       await fxZaoriku('d13', 0); await pause(600); break;
+    case 'kamui':
+      pcs = {12: own('G'), 2: en('R')}; draw(); await pause(400);
+      await cutin('kamui'); { const eye = fx('fx-eye', EYE, {}, 3000); await pause(1500); eye.classList.add('out'); } await pause(600); break;
     case 'shenron':
       pcs = {12: own('G'), 2: en('R')}; draw(); await pause(400);
       await fxShenron(0, 'room'); await pause(500); break;
@@ -3045,6 +3115,17 @@ async function fxShenron(side, item){
 }
 /* ---------- Zaoriku on the graveyard ---------- */
 async function fxRevive(sq, side, t){
+  if (sq == null){
+    const who = S.local ? SIDE[side] : (nameOf(side === 0 ? S.game?.sente : S.game?.gote).replace('（あなた）', '') || SIDE[side]);
+    [523, 659, 784, 1047, 784, 1047, 1319].forEach((f, i) => tone(f, .09, 'square', .06, null, i * .07));
+    await dqWindow([`${who}は ザオリクを となえた！`]);
+    const hand = document.querySelector(`.who[data-side="${side}"]`)?.closest('.band')?.querySelector('.hand');
+    hand?.animate([{filter: 'none'}, {filter: 'brightness(1.8) drop-shadow(0 0 12px #ffd84a)', offset: .4}, {filter: 'none'}], {duration: 1600});
+    [392, 523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, .3, 'triangle', .08, null, .2 + i * .1));
+    await wait(700);
+    await dqWindow([`なんと 墓地の${E.NAMES[t]}が 持ち駒に もどった！`]);
+    return;
+  }
   const pc = document.querySelector(`.cell[data-sq="${sq}"] .pc`);
   if (pc) pc.style.visibility = 'hidden';
   const who = S.local ? SIDE[side] : (nameOf(side === 0 ? S.game?.sente : S.game?.gote).replace('（あなた）', '') || SIDE[side]);
@@ -3076,6 +3157,64 @@ async function fxProtein(side){
   const w = document.querySelector(`.who[data-side="${side}"] .bwrap`);
   for (const m of w?.querySelectorAll('.muscle') || []) m.animate([{scale: 0}, {scale: 1.35, offset: .6}, {scale: 1}], {duration: 700, easing: 'cubic-bezier(.2,1.5,.4,1)'});
   tone(110, .4, 'square', .08, 220); banner('ムキッ！！', '', {x: b.left + b.width / 2, y: Math.max(40, b.top - 10)});
+}
+
+/* ---------- present: a bunny girl carries the gift box to the other player ---------- */
+const GIFT = `<svg viewBox="0 0 60 56"><rect x="6" y="22" width="48" height="32" rx="4" fill="#E53950" stroke="#8a1424" stroke-width="2.5"/><rect x="2" y="14" width="56" height="12" rx="3" fill="#ff5c72" stroke="#8a1424" stroke-width="2.5"/><rect x="26" y="14" width="8" height="40" fill="#FFD43B" stroke="#a37500" stroke-width="1.5"/><path d="M30 14 C18 2 8 8 16 14 M30 14 C42 2 52 8 44 14" fill="none" stroke="#FFD43B" stroke-width="5" stroke-linecap="round"/></svg>`;
+const BUNNY = `<svg viewBox="0 0 120 170"><path d="M44 46 C30 2 46 -4 54 40 M76 46 C92 2 76 -4 68 40" fill="#2b2b2b" stroke="#111" stroke-width="2"/><path d="M45 40 C38 12 46 8 51 36 M75 40 C82 12 74 8 69 36" fill="#ff9ec1"/><rect x="38" y="40" width="44" height="6" rx="3" fill="#111"/>
+<path d="M34 66 C30 40 90 40 86 66 L88 84 C76 90 44 90 32 84 Z" fill="#2b2b2b"/><circle cx="60" cy="70" r="24" fill="#FFE0C8" stroke="#5a3a20" stroke-width="2.5"/><path d="M36 62 C42 46 78 46 84 62 C76 56 66 54 60 58 C54 54 44 56 36 62 Z" fill="#2b2b2b"/>
+<ellipse cx="51" cy="72" rx="3.6" ry="4.6" fill="#2a1a10"/><ellipse cx="69" cy="72" rx="3.6" ry="4.6" fill="#2a1a10"/><circle cx="52" cy="70.5" r="1.3" fill="#fff"/><circle cx="70" cy="70.5" r="1.3" fill="#fff"/><path d="M55 81 Q60 86 65 81" stroke="#b5463b" stroke-width="2.2" fill="none" stroke-linecap="round"/><ellipse cx="45" cy="79" rx="4" ry="2.5" fill="#ffb3b3" opacity=".7"/><ellipse cx="75" cy="79" rx="4" ry="2.5" fill="#ffb3b3" opacity=".7"/>
+<path d="M50 96 L60 102 L70 96 L70 108 L60 102 L50 108 Z" fill="#E53950" stroke="#8a1424" stroke-width="1.5"/><path d="M40 104 C40 98 80 98 80 104 L86 150 C70 156 50 156 34 150 Z" fill="#2b2b2b" stroke="#111" stroke-width="2"/><path d="M46 104 L60 118 L74 104" fill="#fff" opacity=".9"/>
+<rect x="46" y="150" width="9" height="16" rx="3" fill="#3a3a3a"/><rect x="65" y="150" width="9" height="16" rx="3" fill="#3a3a3a"/><circle cx="92" cy="138" r="8" fill="#fff" stroke="#ddd" stroke-width="2"/></svg>`;
+async function fxPresent(from, to, item){
+  const a = birdOf(from), b = birdOf(to); if (!a || !b) return;
+  const ax = a.left + a.width / 2, ay = a.top + a.height / 2, bx = b.left + b.width / 2 + 60, by = b.top + b.height / 2;
+  const bun = fx('fx-fun bunny', `<div class="bun">${BUNNY}</div><div class="box">${GIFT}</div>`, {left: ax + 'px', top: ay + 'px', width: '110px', height: '150px'}, 6000);
+  [784, 988, 1175, 1568].forEach((f, i) => tone(f, .14, 'triangle', .08, null, i * .12));
+  banner('プレゼントをお届けします♪', 'pink small', {x: innerWidth / 2, y: innerHeight * .25});
+  const steps = 6;
+  for (let i = 1; i <= steps; i++){
+    const x = ax + (bx - ax) * i / steps, y = ay + (by - ay) * i / steps;
+    await bun.animate([{left: bun.style.left, top: bun.style.top}, {left: x + 'px', top: (y - 40) + 'px', offset: .5}, {left: x + 'px', top: y + 'px'}], {duration: 330, easing: 'ease-in-out', fill: 'forwards'}).finished;
+    bun.style.left = x + 'px'; bun.style.top = y + 'px';
+    tone(660, .05, 'sine', .05);
+  }
+  const box = bun.querySelector('.box');
+  box.classList.add('open'); SFX.chime();
+  const seen = canSee(to) || S.openCard || to === info().mySide;
+  fx('fx-roulette', `<div class="slot">${ICON[item]}</div><div class="lbl">プレゼント：${esc(I.INFO[item].name)}</div>`, {left: '50%', top: '50%'}, 1950);
+  banner(to === info().mySide && !S.local ? 'プレゼントが届いた！' : 'プレゼントを届けた！', 'pink', {x: bx, y: Math.max(40, by - 90)});
+  await wait(1600);
+  bun.animate([{opacity: 1}, {opacity: 0, translate: '0 -30px'}], {duration: 500, fill: 'forwards'});
+  await wait(400);
+}
+/* ---------- Kamui: the Mangekyo eye opens and a card is sucked into another dimension ---------- */
+const EYE = `<svg viewBox="0 0 240 120"><path d="M8 60 C60 4 180 4 232 60 C180 116 60 116 8 60 Z" fill="#f6f1ea" stroke="#1a1a1a" stroke-width="5"/><g class="iris"><circle cx="120" cy="60" r="44" fill="#c4141c" stroke="#1a1a1a" stroke-width="4"/>
+<path d="M120 60 C150 34 152 20 136 18 C150 40 138 50 120 60 Z M120 60 C114 98 102 104 94 92 C116 92 120 80 120 60 Z M120 60 C82 48 74 36 86 26 C92 48 104 52 120 60 Z" fill="#1a1a1a"/><circle cx="120" cy="60" r="8" fill="#1a1a1a"/></g></svg>`;
+async function fxKamui(side, target, idx){
+  const dark = fx('fx-dark kamui', '', {}, 8000);
+  await cutin('kamui');
+  const eye = fx('fx-eye', EYE, {}, 3000);
+  tone(90, 1.4, 'sine', .14, 45); noise(1.2, 400, .5, 1.5, 'bandpass');
+  await wait(1100);
+  const band = document.querySelector(`.who[data-side="${target}"]`)?.closest('.band');
+  const card = band?.querySelectorAll('.bcard')[idx] || band?.querySelector('.bcards') || band;
+  const r = card?.getBoundingClientRect();
+  if (r){
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    fx('fx-vortex', '', {left: cx + 'px', top: cy + 'px'}, 2200);
+    noise(1.6, 900, .3, 1.8, 'bandpass'); tone(400, 1.4, 'sawtooth', .05, 60);
+    if (card?.classList?.contains('bcard')){
+      const ghost = fx('fx-clone', card.outerHTML, {left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px'}, 2200);
+      card.style.visibility = 'hidden';
+      ghost.animate([{rotate: '0deg', scale: 1, filter: 'none'}, {rotate: '300deg', scale: .7, filter: 'blur(1px)', offset: .5}, {rotate: '900deg', scale: 0, filter: 'blur(3px)', opacity: .2}], {duration: 1300, easing: 'cubic-bezier(.6,0,.9,.6)', fill: 'forwards'});
+    }
+    banner('神威！', 'red', {x: cx, y: Math.max(40, cy + 70)});
+  }
+  eye.classList.add('out');
+  await wait(1600);
+  dark.classList.add('out');
+  await wait(300);
 }
 
 /* ---------- Zaoriku: a retro RPG message window, then a golden pillar raises the king as a ghost ---------- */
@@ -3309,6 +3448,11 @@ function runCommand(raw){
     S.openCard = !S.openCard; lsSet('opencard', S.openCard);
     toast(S.openCard ? '相手のカードを表示します（自分の画面だけ）' : '相手のカードを伏せました');
   } else if (c === 'protein') sendFun('pro');
+  else if (c === 'present'){
+    if (S.view !== 'game' || !isItem()) toast('カード戦の対局中に使えます');
+    else if (!S.local && info().mySide === null) toast('対局しているプレイヤーだけ使えます');
+    else { closeCmd(); S.modal = 'present'; render(); return; }
+  }
   else if (c === 'reset'){
     if (S.view !== 'game' || !isItem()) toast('カード戦の対局中に使えます');
     else if (!S.local && info().mySide === null) toast('対局しているプレイヤーだけ使えます');
@@ -3377,8 +3521,10 @@ document.addEventListener('click', e => {
   if (pb && S.promo){ const want = pb.dataset.promo === '1'; const mv = S.promo.cands.find(m => m.promote === want); doAction(E.toUsi(mv)); return; }
   const wb = e.target.closest('[data-wish]');
   if (wb){ S.modal = null; const a = `${S.wishMark}shenron:${wb.dataset.wish}`; if (I.act(getRep().pos, a, false)) doAction(a); else { toast('いまは使えません'); render(); } return; }
+  const gf = e.target.closest('[data-gift]');
+  if (gf){ S.modal = null; S.boxQueued = {g: S.local ? 'local' : S.gameId, a: `#P${gf.dataset.free === '1' ? '!' : ''}:${gf.dataset.gift}`}; toast(canAct() ? 'プレゼントを届けます' : '自分の番になったらプレゼントを届けます'); applyNoBox(); render(); return; }
   const rb = e.target.closest('[data-revive]');
-  if (rb){ S.modal = null; S.revivePick = rb.dataset.revive; render(); return; }
+  if (rb){ S.modal = null; const a = `${S.wishMark}zaoriku:${rb.dataset.revive}`; if (I.act(getRep().pos, a, false)) doAction(a); else { toast('いまは使えません'); render(); } return; }
   const cr = e.target.closest('[data-cmd]');
   if (cr){ runCommand(cr.dataset.cmd); return; }
   const gb = e.target.closest('[data-gum]');
@@ -3428,7 +3574,7 @@ document.addEventListener('click', e => {
     case 'copy-link': copyText(inviteUrl(S.gameId), '招待リンクをコピーしました'); break;
     case 'sound': S.sound = !S.sound; lsSet('sound', S.sound); render(); break;
     case 'undo': S.localMoves = S.localMoves.slice(0, -1); S.localStamps = S.localStamps.slice(0, -1); S.viewPly = null; S.sel = null; S.itemPick = null; saveLocal(); render(); playNew(); break;
-    case 'reset': S.localRv = 4; S.localMoves = []; S.localStamps = []; S.localStart = Date.now(); S.localSeed = (Math.random() * 2**32) >>> 0; S.viewPly = null; S.sel = null; S.itemPick = null; S.animSeen = null; saveLocal(); render(); playNew(); break;
+    case 'reset': S.localRv = 5; S.localNb = true; S.localMoves = []; S.localStamps = []; S.localStart = Date.now(); S.localSeed = (Math.random() * 2**32) >>> 0; S.viewPly = null; S.sel = null; S.itemPick = null; S.animSeen = null; saveLocal(); render(); playNew(); break;
   }
 });
 window.addEventListener('hashchange', () => {
