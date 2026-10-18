@@ -1893,6 +1893,8 @@ function itemsPanel(pos, inf){
   if (free) list = I.ITEMS;
   else if (side !== null) list = pos.cards[side];
   else return '';
+  // the panel appears only once you hold a card (or can still work the gum)
+  if (!free && !list.length && !(side !== null && I.hasGum(pos.board, side))) return '';
   const act = canAct() && (S.local || pos.turn === inf.mySide);
   const cards = list.map(it => {
     const ok = act && I.canUse(pos, it, free);
