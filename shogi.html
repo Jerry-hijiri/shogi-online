@@ -740,12 +740,12 @@ const ItemShogi = (() => {
     dual:   {name:'二刀流', short:'二刀流', need:'own', desc:'自分の駒1枚から手が生え、剣を2本装備する。このターン、その駒を2回続けて動かせる（持ち駒は打てない）。'},
     star:   {name:'スター', short:'スター', need:'own', desc:'自分の駒1枚が、このターンだけ全方向に1マス動けるようになる。'},
     giga:   {name:'ギガスラッシュ', short:'ギガスラッシュ', need:'own', desc:'自分の駒1枚が右手に光る剣を構える。その駒が次に相手の駒を取ると、回転斬りで左右に並ぶ相手の駒もまとめて斬る（玉は斬れない）。'},
-    mush:   {name:'きのこ', short:'きのこ', need:'own', desc:'自分の駒1枚が大きくなる。取られそうになったら1回だけ弾き返し、元の大きさに戻る。'},
+    mush:   {name:'きのこ', short:'きのこ', need:'own', desc:'自分の駒1枚が大きくなる（見た目が変わるだけで、守りの効果はない）。'},
     volt:   {name:'10万ボルト', short:'10万ボルト', need:'enemy', desc:'相手の駒1枚に雷を落とす。相手の次の番、その駒は動けない。'},
     ge:     {name:'ゴールド・エクスペリエンス', short:'ゴールドE', need:'own', desc:'仕込みカード。自分の駒（玉以外）の裏に伏せておく。その駒が取られそうになると発動し、金のオーラで宙に浮いて相手の次の番まで取られない。'},
     hatsu:  {name:'発', short:'発', need:'own', desc:'自分の駒1枚が白いオーラを纏う。纏った駒は相手のカードの攻撃を受けない（10万ボルトの対象にならない、ギガスラッシュの巻き添えにならない、拳骨衝突でも粉砕されず普通に取られるだけ）。'},
     gum:    {name:'バンジーガム', short:'バンジーガム', need:'own', desc:'自分の駒1枚がガムのオーラを纏い、バンジーガムを操れるようになる。ガムを2か所（駒かマス）につけて縮めると、2つ目につけた駒が1つ目の方へ引き寄せられる。縮めるとその番の1手になる。つける・はずすは自由。'},
-    impact: {name:'拳骨衝突（ギャラクシーインパクト）', short:'拳骨衝突', need:'own', desc:'理外の覇気が盤面を穿つ！ 自分の駒1枚に覇気を纏わせる。その駒が次に相手の駒を取ると、その駒を粉砕する。粉砕された駒は持ち駒にならず墓地へ送られ、二度と使えない（きのこ・仕込みカードも貫通）。'},
+    impact: {name:'拳骨衝突（ギャラクシーインパクト）', short:'拳骨衝突', need:'own', desc:'理外の覇気が盤面を穿つ！ 自分の駒1枚に覇気を纏わせる。その駒が次に相手の駒を取ると、その駒を粉砕する。粉砕された駒は持ち駒にならず墓地へ送られ、二度と使えない（仕込みカードも貫通）。'},
     shimon: {name:'八門遁甲の陣（死門）', short:'死門', need:'own', desc:'己の掟を貫き通す奥義。自分の銀・金・桂・香・飛・角（成っていない駒）1枚が死門を開き、ワインレッドに染まる。このターン、その駒は駒を飛び越えて盤上のどのマスへも一気に移動できる。進んだ道と移動先の駒は敵味方問わずすべて炭化して墓地へ。最後に自分の駒も炭化して消える（玉は炭化せず、玉のマスへは移動できない）。'},
     zaoriku:{name:'ザオリク', short:'ザオリク', need:null, passive:true, desc:'持っているだけで効く復活の呪文。詰んだとき、または玉を取られたときに自動で唱え、玉が亡霊として復活する（詰みならその場、取られたら自陣の初期位置かその近くの空きマス）。亡霊の玉は持ち主の次の2回の番が終わるまで取られない。1回でなくなる。'},
     room:   {name:'ROOM・シャンブルズ', short:'ROOM', need:'own', desc:'自分の駒1枚を中心に、周囲2マス（5×5）へ水色のドーム「ROOM」を張る。ドームの中の駒を2つ選ぶと、敵味方問わず一瞬で位置を入れ替える（シャンブルズ）。入れ替えがその番の1手になる。発のオーラを纏った相手の駒は入れ替えられない。'},
@@ -805,7 +805,7 @@ const ItemShogi = (() => {
   function inDanger(board, s, T2){
     const k = B.kingSq(board, s); if (k < 0) return false;
     const kp = board[k];
-    if (kp.mush || floating(kp, T2)) return false;
+    if (floating(kp, T2)) return false;
     return attacked(board, k, 1-s, T2);
   }
   // squares crossed on the straight dash from `from` to `to` (both ends excluded)
@@ -831,7 +831,6 @@ const ItemShogi = (() => {
     const b = st.board.slice(), s = st.turn;
     if (mv.drop){ b[mv.to] = {t:mv.drop, s, p:false}; return b; }
     const pc = b[mv.from], tg = b[mv.to];
-    if (tg && tg.mush && !pc.impact) return b;
     b[mv.to] = mv.promote ? {...pc, p:true} : pc; b[mv.from] = null;
     return b;
   }
@@ -1097,10 +1096,7 @@ const ItemShogi = (() => {
     if (mv.drop){ b[mv.to] = {t:mv.drop, s, p:false, id:n.nid++}; n.hands[s][mv.drop]--; }
     else {
       const pc = b[mv.from], tg = b[mv.to];
-      if (tg && !pc.impact && tg.mush){
-        tg.mush = false; arrived = false;
-        ev.push({type:'bounce', sq:mv.to}); text += '（きのこで弾かれた）';
-      } else if (tg && !pc.impact && tg.trap){
+      if (tg && !pc.impact && tg.trap){
         tg.trap = false; tg.float = T + 2; arrived = false;
         ev.push({type:'geon', sq:mv.to}); text += '（ゴールド・エクスペリエンス発動）';
       } else {
@@ -1122,8 +1118,7 @@ const ItemShogi = (() => {
             const cc = c + dc; if (cc < 0 || cc > 8) continue;
             const q = r*9 + cc, qp = b[q];
             if (!qp || qp.s === s || qp.t === 'K' || qp.aura || floating(qp, T)) continue;
-            if (qp.mush){ qp.mush = false; ev.push({type:'bounce', sq:q}); }
-            else if (qp.trap){ qp.trap = false; qp.float = T + 2; ev.push({type:'geon', sq:q}); }
+            if (qp.trap){ qp.trap = false; qp.float = T + 2; ev.push({type:'geon', sq:q}); }
             else { n.hands[s][qp.t]++; b[q] = null; }
             hit.push(q);
           }
@@ -2609,7 +2604,7 @@ async function demoRun(item, tok){
     case 'mush':
       pcs = {7: own('S'), 2: en('R')}; draw(); await pause(500);
       await cutin('mush'); pcs[7].mush = true; draw(); ring('d7', '#E53935'); banner('パワーアップ！'); SFX.boing(); await pause(1200);
-      await lunge(2, 7); ring('d7', '#E53935'); banner('ボヨン！'); SFX.boing(); pcs[7].mush = false; draw(); await pause(900); break;
+      banner('大きくなった！（見た目だけ）', 'small'); await pause(1200); break;
     case 'volt':
       pcs = {12: own('G'), 2: en('R')}; draw(); await pause(500);
       await cutin('volt'); fxVolt('d2'); SFX.zap(); pcs[2].frozen = 1; draw(); await pause(900); banner('しびれて動けない！', 'blue small'); await pause(1000); break;
