@@ -360,6 +360,33 @@ body.cl-on .top,body.cl-on #lobby,body.cl-on #game{padding-left:220px;box-sizing
 .fx-flash.cyan{background:#dff8ff}
 .cell.tgt.roomt::before{box-shadow:0 0 0 3px #38B6E8,0 0 14px #7FE0FF}
 
+/* shenron, protein, revive */
+.fx-dark.shenron{background:radial-gradient(circle at 50% 40%,rgba(20,60,30,.45),rgba(2,10,5,.92))}
+.fx-flash.shenron{background:#c9ffd2}
+.fx-balls{left:50%;top:50%;width:0;height:0;z-index:88}
+.fx-balls span{position:absolute;width:62px;height:62px;left:-31px;top:-31px;transform:rotate(var(--a)) translateY(-150px) rotate(calc(-1 * var(--a)));filter:drop-shadow(0 0 14px #ffb52e);animation:ballglow .5s ease-in-out infinite alternate}
+.fx-balls.out span{animation:ballin .5s ease-in forwards}
+@keyframes ballglow{to{filter:drop-shadow(0 0 28px #fff2a0)}}
+@keyframes ballin{to{transform:rotate(var(--a)) translateY(0) scale(.2);opacity:0}}
+.fx-dragon{left:50%;bottom:0;transform:translateX(-50%);width:min(560px,70vw);z-index:88;filter:drop-shadow(0 0 22px rgba(120,255,140,.6))}
+.fx-dragon svg{width:100%;height:auto;display:block}
+.fx-dragon .body{stroke-dasharray:1800;stroke-dashoffset:1800;animation:dragonrise 1.8s cubic-bezier(.3,0,.2,1) forwards}
+.fx-dragon .head{opacity:0;animation:headin .5s ease-out 1.6s forwards}
+.fx-dragon.out{animation:dqout .5s ease-in forwards}
+@keyframes dragonrise{to{stroke-dashoffset:0}}
+@keyframes headin{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+.card.wish{max-width:440px}
+.card.wish .cardgrid{grid-template-columns:repeat(4,1fr)}
+.card.wish .icard .pc{width:34px;height:37px;font-size:20px}
+.fx-dice .sum small{display:block;margin-top:6px;font-size:14px;color:#ffb3b3}
+.bwrap{position:relative;display:inline-grid;place-items:center;flex:none}
+.bwrap.buff{margin:0 calc(var(--ch) * .5)}
+.muscle{position:absolute;top:-2%;width:calc(var(--ch) * .78);height:calc(var(--ch) * .7);pointer-events:none;filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))}
+.muscle svg{width:100%;height:100%}
+.muscle.l{right:58%}
+.muscle.r{left:58%;transform:scaleX(-1)}
+.cell.tgt.revt::before{box-shadow:0 0 0 3px #f7c948,0 0 14px #ffd84a}
+
 /* death note */
 .fx-note{left:50%;top:50%;transform:translate(-50%,-50%);z-index:89;perspective:1400px;animation:dicein .4s ease-out both}
 .fx-note.out{animation:dqout .45s ease-in forwards}
@@ -765,9 +792,9 @@ const Shogi = (() => {
 // Actions: USI moves, "@item[:sq]" card use, "~a:sq" / "~d" / "~c" Bungee Gum attach / detach / contract.
 const ItemShogi = (() => {
   const B = Shogi;
-  const ITEMS = ['dual','star','giga','mush','volt','ge','hatsu','gum','impact','shimon','zaoriku','room','note'];
-  // box draws must not change for older games: rule version 3 added the Death Note
-  const poolFor = st => st.rv >= 3 ? ITEMS : ITEMS.slice(0, 12);
+  const ITEMS = ['dual','star','giga','mush','volt','ge','hatsu','gum','impact','shimon','zaoriku','room','note','shenron'];
+  // box draws must not change for older games: v3 added the Death Note, v4 Shenron
+  const poolFor = st => st.rv >= 4 ? ITEMS : st.rv >= 3 ? ITEMS.slice(0, 13) : ITEMS.slice(0, 12);
   const INFO = {
     dual:   {name:'二刀流', short:'二刀流', need:'own', desc:'自分の駒1枚から手が生え、剣を2本装備する。このターン、その駒を2回続けて動かせる（持ち駒は打てない）。'},
     star:   {name:'スター', short:'スター', need:'own', desc:'自分の駒1枚が、このターンだけ全方向に1マス動けるようになる。'},
@@ -778,9 +805,10 @@ const ItemShogi = (() => {
     hatsu:  {name:'発', short:'発', need:'own', desc:'自分の駒1枚が白いオーラを纏う。纏った駒は相手のカードの攻撃を受けない（10万ボルトの対象にならない、ギガスラッシュの巻き添えにならない、拳骨衝突でも粉砕されず普通に取られるだけ）。'},
     gum:    {name:'バンジーガム', short:'バンジーガム', need:'own', desc:'自分の駒1枚がガムのオーラを纏い、バンジーガムを操れるようになる。ガムを2か所（駒かマス）につけて縮めると、2つ目につけた駒が1つ目の方へ引き寄せられる。縮めるとその番の1手になる。つける・はずすは自由。'},
     impact: {name:'拳骨衝突（ギャラクシーインパクト）', short:'拳骨衝突', need:'own', desc:'理外の覇気が盤面を穿つ！ 自分の駒1枚から、その前方（同じ列）へ放つ。相手のいちばん手前の駒は粉砕されて墓地へ。その後ろに並ぶ相手の駒はすべて風で場外へ吹き飛ばされ、相手の持ち駒に戻る（玉と発のオーラの駒は影響を受けない）。'},
+    shenron:{name:'シェンロン', short:'シェンロン', need:'wish', desc:'七つの玉を集めて神龍を呼び出す。好きなカードを1枚選んで手に入れられる（選んだカードは相手に見えない）。'},
     note:   {name:'デスノート', short:'デスノート', need:'enemy', desc:'このノートに名前を書かれた駒は死ぬ。相手の駒（玉以外）を1枚選ぶと、その駒は息絶えて墓地へ送られる。発のオーラを纏った駒には効かない。'},
     shimon: {name:'八門遁甲の陣（死門）', short:'死門', need:'own', desc:'己の掟を貫き通す奥義。自分の銀・金・桂・香・飛・角（成っていない駒）1枚が死門を開き、ワインレッドに染まる。このターン、その駒は駒を飛び越えて盤上のどのマスへも一気に移動できる。進んだ道と移動先の駒は敵味方問わずすべて炭化して墓地へ。最後に自分の駒も炭化して消える（玉は炭化せず、玉のマスへは移動できない）。'},
-    zaoriku:{name:'ザオリク', short:'ザオリク', need:null, passive:true, desc:'持っているだけで効く復活の呪文。詰んだとき、または玉を取られたときに自動で唱え、玉が亡霊として復活する（詰みならその場、取られたら自陣の初期位置かその近くの空きマス）。亡霊の玉は持ち主の次の2回の番が終わるまで取られない。1回でなくなる。'},
+    zaoriku:{name:'ザオリク', short:'ザオリク', need:null, passive:true, desc:'自分の番にクリックすると、自分の墓地の駒を1枚、盤の空きマスに復活させられる。また持っているだけでも効く復活の呪文で、詰んだとき、または玉を取られたときに自動で唱え、玉が亡霊として復活する（詰みならその場、取られたら自陣の初期位置かその近くの空きマス）。亡霊の玉は持ち主の次の2回の番が終わるまで取られない。1回でなくなる。'},
     room:   {name:'ROOM・シャンブルズ', short:'ROOM', need:'own', desc:'自分の駒1枚から盤全体へ水色のドーム「ROOM」を張る。盤上のどこでも、玉以外の駒を2つ選ぶと、敵味方問わず一瞬で位置を入れ替える（シャンブルズ）。入れ替えがその番の1手になる。発のオーラを纏った相手の駒は入れ替えられない。'},
   };
   const SHIMON_OK = ['S','G','N','L','R','B'];
@@ -806,7 +834,7 @@ const ItemShogi = (() => {
     p.board.forEach((pc, i) => { if (pc) pc.id = i + 1; });
     const st = {board:p.board, hands:p.hands, turn:0, T:0, moved:0, cardUsed:false, dual:false, room:null, nid:100,
       cards:[[],[]], boxes:[], gum:[[],[]], crushed:[[],[]], rng:(seed >>> 0) || 1, ply:0, lastTo:-1, lastFrom:-1, result:null,
-      boxesOn: !opts?.boxesOff, noFree: false, rv: opts?.rv ?? (opts?.legacyMush ? 1 : 3)};
+      boxesOn: !opts?.boxesOff, noFree: false, rv: opts?.rv ?? (opts?.legacyMush ? 1 : 4)};
     st.mushGuard = st.rv < 2;
     spawnBox(st); spawnBox(st);
     return st;
@@ -816,13 +844,16 @@ const ItemShogi = (() => {
     crushed:[[...st.crushed[0]], [...st.crushed[1]]]});
   const floating = (pc, T) => (pc.float != null && pc.float >= T) || (pc.ghost != null && pc.ghost >= T);
 
-  function targetsOf(board, sq, T){
+  function targetsOf(board, sq, T, rv){
     const pc = board[sq], out = B.targets(board, sq);
     if (pc.star === T){
       const r = (sq/9)|0, c = sq%9;
+      // v4: a starred pawn may not step sideways into a file that already holds its own pawn (no double pawn)
+      const pawnIn = f => board.some((x, i) => x && i !== sq && i % 9 === f && x.s === pc.s && x.t === 'P' && !x.p);
       for (const [dr,dc] of KING_D){
         const nr = r+dr, nc = c+dc;
         if (nr<0||nr>8||nc<0||nc>8) continue;
+        if (rv >= 4 && pc.t === 'P' && !pc.p && nc !== c && pawnIn(nc)) continue;
         const t = nr*9+nc, q = board[t];
         if ((!q || q.s !== pc.s) && !out.includes(t)) out.push(t);
       }
@@ -900,7 +931,7 @@ const ItemShogi = (() => {
         }
         continue;
       }
-      for (const t of targetsOf(b, i, T)){
+      for (const t of targetsOf(b, i, T, st.rv)){
         if (B.canPromote(pc, i, t) && ok({from:i, to:t, promote:true}) && firstOnly) return out;
         if (!B.mustPromote(pc, t) && ok({from:i, to:t, promote:false}) && firstOnly) return out;
       }
@@ -928,7 +959,7 @@ const ItemShogi = (() => {
   }
   function itemTargets(st, item){
     const s = st.turn, need = INFO[item].need, out = [];
-    if (!need) return out;
+    if (need !== 'own' && need !== 'enemy') return out;
     const movers = item === 'dual' ? new Set(legal(st).filter(m => !m.drop).map(m => m.from)) : null;
     for (let i=0;i<81;i++){
       const p = st.board[i]; if (!p) continue;
@@ -959,12 +990,25 @@ const ItemShogi = (() => {
     }
     return {first, blown};
   }
+  function reviveTargets(st, t){
+    const s = st.turn, out = [];
+    for (let i=0;i<81;i++){
+      if (st.board[i]) continue;
+      const d = s === 0 ? (i/9)|0 : 8 - ((i/9)|0);
+      if ((t==='P'||t==='L') && d===0) continue;
+      if (t==='N' && d<=1) continue;
+      if (t==='P' && st.board.some((x, j) => x && j % 9 === i % 9 && x.s === s && x.t === 'P' && !x.p)) continue;
+      out.push(i);
+    }
+    return out;
+  }
   function canUse(st, item, free){
     if (item === 'note' && st.rv < 3) return false;
     if (INFO[item]?.passive) return !st.result && free && !st.cards[st.turn].includes(item);
     if (st.result || st.cardUsed || st.moved > 0 || !INFO[item]) return false;
     if (!free && !st.cards[st.turn].includes(item)) return false;
-    if (INFO[item].need && !itemTargets(st, item).length) return false;
+    if ((INFO[item].need === 'own' || INFO[item].need === 'enemy') && !itemTargets(st, item).length) return false;
+    if (item === 'shenron' && st.rv < 4) return false;
     return true;
   }
 
@@ -1064,6 +1108,13 @@ const ItemShogi = (() => {
       const n = clone(st); n.noBoxes = true; n.boxes = [];
       return {st:n, ev:[{type:'boxesoff', side:s}], text:'？ボックスを無しにした', pub:null, item:true};
     }
+    if (a === '#R'){
+      // hidden command: strip every special effect from every piece on the board
+      const n = clone(st); let cnt = 0;
+      for (const p of n.board) if (p) for (const k of ['aura','trap','mush','gum','giga','impact','float','frozen','star','ghost']) if (p[k] != null && p[k] !== false){ delete p[k]; cnt++; }
+      if (n.gum[0].length || n.gum[1].length){ n.gum = [[], []]; cnt++; }
+      return {st:n, ev:[{type:'reset', side:s}], text:`駒の特殊効果をすべて消した（${cnt}個）`, pub:null, item:true};
+    }
     if (a === '#Y'){
       if (!st.noBoxes) return null;
       const n = clone(st); n.noBoxes = false; spawnBox(n); spawnBox(n);
@@ -1103,6 +1154,28 @@ const ItemShogi = (() => {
       let body = a.slice(1);
       if (body[0] === '!'){ if (st.noFree) return null; free = true; body = body.slice(1); }
       const [item, u] = body.split(':');
+      if (item === 'zaoriku' && u){
+        // v4: cast Zaoriku on your graveyard: "P*5e" brings a pawn back onto 5e
+        const m = /^([RBGSNLP])\*(\d[a-i])$/.exec(u);
+        if (st.rv < 4 || !m || st.result || st.cardUsed || st.moved > 0 || (!free && !st.cards[s].includes('zaoriku'))) return null;
+        const t = m[1], sq = B.usiToSq(m[2]);
+        if (!st.crushed[1 - s].includes(t) || !reviveTargets(st, t).includes(sq)) return null;
+        const n = clone(st);
+        n.crushed[1 - s].splice(n.crushed[1 - s].indexOf(t), 1);
+        n.board[sq] = {t, s, p:false, id:n.nid++};
+        if (!free) n.cards[s].splice(n.cards[s].indexOf('zaoriku'), 1);
+        n.cardUsed = true;
+        if (!legal(n, true).length) return null;
+        const text = `ザオリク（墓地の${B.NAMES[t]}を${B.sqName(sq)}へ）`;
+        return {st:n, ev:[{type:'zaorevive', side:s, sq, t}], text, pub:text, item:true};
+      }
+      if (item === 'shenron'){
+        if (!canUse(st, 'shenron', free) || !poolFor(st).includes(u) || u === 'shenron') return null;
+        const n = clone(st);
+        if (!free) n.cards[s].splice(n.cards[s].indexOf('shenron'), 1);
+        n.cards[s].push(u); n.cardUsed = true;
+        return {st:n, ev:[{type:'shenron', side:s, item:u}], text:`シェンロン：「${INFO[u].name}」を願った`, pub:'シェンロンに願いをかなえてもらった', item:true};
+      }
       if (!canUse(st, item, free)) return null;
       let sq = -1;
       if (INFO[item].need){ sq = B.usiToSq(u || ''); if (!itemTargets(st, item).includes(sq)) return null; }
@@ -1231,7 +1304,7 @@ const ItemShogi = (() => {
     return {states, entries, events, result: st.result, invalid, pos: st};
   }
 
-  return {ITEMS, INFO, HAND_MAX, init, legal, act, replay, canUse, itemTargets, inDanger, canGum, pullDest, gumSquares, hasGum, gumUserSq, inRoom, swapUsi,
+  return {ITEMS, INFO, HAND_MAX, init, legal, act, replay, canUse, itemTargets, inDanger, canGum, pullDest, gumSquares, hasGum, gumUserSq, inRoom, swapUsi, reviveTargets, poolFor,
     inDangerSt: st => { MUSH_GUARD = !!st.mushGuard; return inDanger(st.board, st.turn, st.T + 1); }};
 })();
 // ENGINE END
@@ -1259,7 +1332,7 @@ const S = {
   local: false, localMoves: [], localStamps: [], localStart: Date.now(), localSeed: 1,
   repKey: null, rep: null, legalKey: null, legal: [],
   viewPly: null, sel: null, promo: null, itemPick: null, gumPick: false, animPly: null, swapA: null, manualFlip: false, confirm: null, modal: null,
-  pending: false, dragging: false, animSeen: null, money: {0: null, 1: null},
+  pending: false, dragging: false, animSeen: null, money: {0: null, 1: null}, muscle: {0: false, 1: false},
   names: {}, avatars: {}, peers: [], online: new Set(),
   sound: lsGet('sound', true),
 };
@@ -1268,6 +1341,7 @@ S.cheat = lsGet('cheat', false);      // card mode shown (command: item)
 S.unlimited = lsGet('unlimited', false);  // every card usable any time (secret command)
 S.cmdList = lsGet('cmdlist', false);      // command list pinned on the left
 S.secretShown = lsGet('secretcmd', false); // hidden commands listed (after the passphrase)
+S.openCard = lsGet('opencard', false);     // opponent's cards shown face up on this screen
 if (ENV === 'web'){
   S.myId = lsGet('me', null) || (() => { const id = rid(16); lsSet('me', id); return id; })();
   S.myName = lsGet('name', '');
@@ -1296,6 +1370,7 @@ const ICON = {
   zaoriku: `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 44 V20 L24 8 L34 20 V44 Z" fill="#3b3b6b" stroke="#16163a" stroke-width="2" stroke-linejoin="round"/><path d="M24 12 V40 M16 24 H32" stroke="#FFD43B" stroke-width="4" stroke-linecap="round"/><circle cx="24" cy="24" r="17" fill="none" stroke="#FFE58A" stroke-width="2" stroke-dasharray="3 4"/><circle cx="10" cy="10" r="2" fill="#FFE58A"/><circle cx="40" cy="12" r="2.5" fill="#FFE58A"/><circle cx="38" cy="38" r="1.8" fill="#FFE58A"/></svg>`,
   room: `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M3 38 A21 21 0 0 1 45 38 Z" fill="rgba(110,215,255,.45)" stroke="#2a8fc0" stroke-width="2"/><path d="M9 34 A16 16 0 0 1 22 20" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round" opacity=".8"/><rect x="2" y="37" width="44" height="4" rx="2" fill="#2a8fc0"/><path d="M17 30 h6 l-3 -4 M31 30 h-6 l3 4" stroke="#0b3d5c" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
   note: `<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="9" y="4" width="30" height="40" rx="2.5" fill="#141414" stroke="#000" stroke-width="2"/><rect x="11" y="4" width="3" height="40" fill="#2a2a2a"/><text x="26.5" y="21" font-size="6.6" font-weight="900" text-anchor="middle" fill="#eaeaea" font-family="Georgia, serif" letter-spacing=".4">DEATH</text><text x="26.5" y="29" font-size="6.6" font-weight="900" text-anchor="middle" fill="#eaeaea" font-family="Georgia, serif" letter-spacing=".4">NOTE</text></svg>`,
+  shenron: `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8 44 C2 30 22 30 16 18 C12 10 22 4 30 8 C38 12 34 22 40 22" fill="none" stroke="#1f5a2a" stroke-width="8" stroke-linecap="round"/><path d="M8 44 C2 30 22 30 16 18 C12 10 22 4 30 8 C38 12 34 22 40 22" fill="none" stroke="#3fae4f" stroke-width="5" stroke-linecap="round"/><circle cx="40" cy="22" r="6" fill="#3fae4f" stroke="#1f5a2a" stroke-width="2"/><circle cx="41.5" cy="20.5" r="1.6" fill="#ff2a2a"/><circle cx="12" cy="38" r="4.5" fill="#ffb52e" stroke="#9a4a05" stroke-width="1"/><circle cx="24" cy="40" r="4.5" fill="#ffb52e" stroke="#9a4a05" stroke-width="1"/><circle cx="36" cy="40" r="4.5" fill="#ffb52e" stroke="#9a4a05" stroke-width="1"/></svg>`,
 };
 // Arms and swords around a piece. Coordinates: the piece fills x 50-150, y 16-124 of a 200x140 box.
 const ARM = (x1, y1, cx, cy, x2, y2) => `<path d="M${x1} ${y1} Q${cx} ${cy} ${x2} ${y2}" stroke="#3a2a1a" stroke-width="19" fill="none" stroke-linecap="round"/><path d="M${x1} ${y1} Q${cx} ${cy} ${x2} ${y2}" stroke="#FFE1BD" stroke-width="12" fill="none" stroke-linecap="round"/><circle cx="${x2}" cy="${y2}" r="12" fill="#FFE1BD" stroke="#3a2a1a" stroke-width="3.5"/>`;
@@ -1412,7 +1487,7 @@ function replayFor(mode, moves, seed, free, opts){
     events: r.kifu.map(() => []), result: r.result, invalid: r.invalid};
 }
 function getRep(){
-  const bx = !S.local && !!S.game?.bx, rv = S.local ? (S.localRv || 3) : (S.game?.rv || 1), mv = curMoves(), k = curMode() + '|' + curSeed() + '|' + bx + rv + '|' + mv.join(' ');
+  const bx = !S.local && !!S.game?.bx, rv = S.local ? (S.localRv || 4) : (S.game?.rv || 1), mv = curMoves(), k = curMode() + '|' + curSeed() + '|' + bx + rv + '|' + mv.join(' ');
   if (S.repKey !== k){ S.rep = replayFor(curMode(), mv, curSeed(), false, {boxesOff: bx, rv}); S.repKey = k; }
   return S.rep;
 }
@@ -1436,7 +1511,7 @@ function canAct(){
   const i = info(), rep = getRep();
   return i.status === 'playing' && S.viewPly === null && S.animPly == null && !S.pending && (S.local || i.mySide === rep.pos.turn);
 }
-const canMove = () => canAct() && !S.itemPick && !S.gumPick;
+const canMove = () => canAct() && !S.itemPick && !S.gumPick && !S.revivePick;
 function canSee(side){ const i = info(); return S.local || i.status === 'ended' || side === i.mySide; }
 function resultText(result, n){
   if (!result) return '';
@@ -1476,6 +1551,14 @@ const itemFree = () => S.unlimited;
 const itemCode = it => (S.unlimited && !getRep().pos.noFree && !getRep().pos.cards[getRep().pos.turn].includes(it) ? '@!' : '@') + it;
 function useItem(it){
   const pos = getRep().pos, free = S.unlimited && !pos.noFree;
+  const holds = pos.cards[pos.turn].includes(it), mark = holds ? '@' : '@!';
+  if (it === 'shenron'){
+    if (!canAct() || !I.canUse(pos, it, free)) return;
+    S.modal = 'wish'; S.wishMark = mark; render(); return;
+  }
+  if (it === 'zaoriku' && (pos.rv >= 4) && canAct() && !pos.cardUsed && !pos.moved && (holds || free) && pos.crushed[1 - pos.turn].length){
+    S.modal = 'revive'; S.wishMark = mark; render(); return;
+  }
   if (I.INFO[it].passive && !free){ toast(`${I.INFO[it].name}は持っているだけで、負けそうなときに自動で唱えます`); return; }
   if (!canAct() || !I.canUse(pos, it, free)) return;
   if (S.itemPick === it){ S.itemPick = null; render(); return; }
@@ -1496,7 +1579,7 @@ function saveLocal(){ lsSet(practiceKey(), {m:S.localMoves, t:S.localStamps, s:S
 function openLocal(){
   const d = lsGet(practiceKey(), null);
   if (d){ S.localMoves = d.m || []; S.localStamps = d.t || []; S.localStart = d.s || Date.now(); S.localSeed = d.seed || 1; S.localRv = d.rv || 2; }
-  else { S.localMoves = []; S.localStamps = []; S.localSeed = (Math.random() * 2**32) >>> 0; S.localStart = Date.now(); S.localRv = 3; }
+  else { S.localMoves = []; S.localStamps = []; S.localSeed = (Math.random() * 2**32) >>> 0; S.localStart = Date.now(); S.localRv = 4; }
   closeGame();
   Object.assign(S, {view:'game', local:true, gameId:null, game:null, viewPly:null, sel:null, promo:null, itemPick:null, confirm:null, manualFlip:false, animSeen:null});
   setPresence(); render(); playNew();
@@ -1559,7 +1642,7 @@ const Ntfy = {
       try {
         const d = JSON.parse(m.message);
         if (d?.n) this.outbox.delete(d.n);
-        if (d?.k === 'fun' && d.by !== S.myId && m.time * 1000 > this.openedAt - 5000 && ['unko', 'fy', 'kb'].includes(d.f) && (d.s === 0 || d.s === 1)) funFx(d.f, d.s, d.d);
+        if (d?.k === 'fun' && d.by !== S.myId && m.time * 1000 > this.openedAt - 5000 && ['unko', 'fy', 'kb', 'pro'].includes(d.f) && (d.s === 0 || d.s === 1)) funFx(d.f, d.s, d.d);
       } catch {}
       this.schedule();
     };
@@ -1634,7 +1717,7 @@ function applyNoBox(){
   const q = S.boxQueued;
   if (!q || q.g !== (S.local ? 'local' : S.gameId)) return;
   const pos = getRep().pos;
-  if ((q.a === '#N') === !!pos.noBoxes){ S.boxQueued = null; return; }
+  if (q.a !== '#R' && (q.a === '#N') === !!pos.noBoxes){ S.boxQueued = null; return; }
   if (!canAct()) return;
   S.boxQueued = null;
   doAction(q.a);
@@ -1674,7 +1757,7 @@ function applyGameSnap(snap){
 function openGame(id){
   if (!S.net) return;
   closeGame();
-  S.money = {0: null, 1: null};
+  S.money = {0: null, 1: null}; S.muscle = {0: false, 1: false};
   Object.assign(S, {view:'game', local:false, gameId:id, viewPly:null, sel:null, promo:null, itemPick:null, confirm:null, manualFlip:false, animSeen:null, notFound:false, netDown:false});
   S.game = null;
   if (S.net === 'db'){
@@ -1713,13 +1796,13 @@ async function createGame(pref, players, mode){
   if (S.net === 'ntfy'){
     const id = rid(12);
     const names = {...(players ? S.game?.names : {}), [S.myId]: S.myName.trim()};
-    try { await Ntfy.post(id, {k:'create', by:S.myId, t:now, g:{mode, seed, sente, gote, names, furigoma, bx: mode === 'item' ? 1 : 0, rv: 3, cmd: {[S.myId]: !!S.cheat}}, n:rid(10)}); }
+    try { await Ntfy.post(id, {k:'create', by:S.myId, t:now, g:{mode, seed, sente, gote, names, furigoma, bx: mode === 'item' ? 1 : 0, rv: 4, cmd: {[S.myId]: !!S.cheat}}, n:rid(10)}); }
     catch (e){ toast(errText(e)); return; }
     openGame(id); return id;
   }
   const id = 'g' + now.toString(36) + Math.random().toString(36).slice(2, 6);
   const data = {sente, gote, creator: S.myId, status: sente && gote ? 'playing' : 'waiting', mode, seed, moves:[], stamps:[], result:null,
-    createdAt: now, updatedAt: now, turn: 0, furigoma, bx: mode === 'item' ? 1 : 0, rv: 3, cmd: {[S.myId]: !!S.cheat}};
+    createdAt: now, updatedAt: now, turn: 0, furigoma, bx: mode === 'item' ? 1 : 0, rv: 4, cmd: {[S.myId]: !!S.cheat}};
   if (sente && gote) data.startedAt = now;
   try { await S.db.doc('games/' + id).set(data); openGame(id); return id; }
   catch (e){ toast(errText(e)); }
@@ -1846,6 +1929,7 @@ const COMMANDS = [
   ['unko', 'うんこを投げる'],
   ['fuckyou', '中指を立てる'],
   ['kingbombee', 'キングボンビー'],
+  ['protein', 'プロテインを飲む'],
   ['command', 'この一覧を閉じる'],
 ];
 // shown only after the passphrase (which itself is never listed)
@@ -1855,6 +1939,8 @@ const SECRET_COMMANDS = [
   ['itembox', '？ボックスの有り/無し（相手に出ない）', () => S.view === 'game' && isItem() && !getRep().pos.noBoxes],
   ['destroy', '相手の持ち札を全て破壊'],
   ['card', 'カードの説明を開く'],
+  ['opencard', '相手のカードを表示（自分の画面だけ）', () => S.openCard],
+  ['reset', '駒についた特殊効果をすべて消す（相手に出ない）'],
 ];
 function renderCmdList(){
   const el = $('#cmdList');
@@ -1863,7 +1949,21 @@ function renderCmdList(){
   const row = ([c, d, on]) => `<button class="cl-row" data-cmd="${c}"><code>${c}</code><span>${d}${on ? ` <em class="${on() ? 'on' : ''}">${on() ? 'ON' : 'OFF'}</em>` : ''}</span></button>`;
   el.innerHTML = `<div class="cmdlist"><div class="cl-head"><b>コマンド</b><span>「/」で入力 ・ クリックでも実行</span></div>${COMMANDS.map(row).join('')}${S.secretShown ? `<div class="cl-sec">隠しコマンド</div>${SECRET_COMMANDS.map(row).join('')}` : ''}</div>`;
 }
+function pickModal(){
+  const pos = getRep().pos;
+  if (S.modal === 'wish'){
+    const pool = I.poolFor(pos).filter(x => x !== 'shenron');
+    return `<div class="modal" data-act="close-modal"><div class="card wish" role="dialog" aria-label="シェンロン"><h2>願いを言え</h2><p class="sub">ほしいカードを1枚えらぶ</p>
+      <div class="cardgrid">${pool.map(it => `<button class="icard" data-wish="${it}">${ICON[it]}<span>${I.INFO[it].short}</span></button>`).join('')}</div>
+      <div class="actions" style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn" data-act="close-modal">やめる</button></div></div></div>`;
+  }
+  const grave = pos.crushed[1 - pos.turn], kinds = [...new Set(grave)];
+  return `<div class="modal" data-act="close-modal"><div class="card wish" role="dialog" aria-label="ザオリク"><h2>ザオリク</h2><p class="sub">墓地から復活させる駒をえらぶ</p>
+    <div class="cardgrid">${kinds.map(t => `<button class="icard" data-revive="${t}">${pieceHtml({t, s:0, p:false}, false)}<span>${E.NAMES[t]} ×${grave.filter(x => x === t).length}</span></button>`).join('')}</div>
+    <div class="actions" style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn" data-act="close-modal">やめる</button></div></div></div>`;
+}
 function renderModal(){
+  if (S.modal === 'wish' || S.modal === 'revive'){ $('#modal').innerHTML = pickModal(); return; }
   if (S.modal !== 'rules'){ $('#modal').innerHTML = ''; return; }
   $('#modal').innerHTML = `<div class="modal" data-act="close-modal"><div class="card" role="dialog" aria-label="カード戦のルール">
     <h2>カード戦のルール</h2>
@@ -1989,7 +2089,7 @@ function itemsPanel(pos, inf){
   const act = canAct() && (S.local || pos.turn === inf.mySide);
   const cards = list.map(it => {
     const ok = act && I.canUse(pos, it, free);
-    if (I.INFO[it].passive && !free) return `<button class="icard passive" data-item="${it}" title="${esc(I.INFO[it].name)}：持っているだけで自動で発動">${ICON[it]}<span>${I.INFO[it].short}</span></button>`;
+    if (I.INFO[it].passive && !free) return `<button class="icard passive" data-item="${it}" title="${esc(I.INFO[it].name)}：持っているだけで自動で発動。墓地に自分の駒があればクリックで復活">${ICON[it]}<span>${I.INFO[it].short}</span></button>`;
     return `<button class="icard${S.itemPick === it ? ' on' : ''}" data-item="${it}" title="${esc(I.INFO[it].name)}" ${ok ? '' : 'disabled'}>${ICON[it]}<span>${I.INFO[it].short}</span></button>`;
   }).join('');
   let desc = 'カードにマウスを乗せると説明が出ます。';
@@ -2057,6 +2157,7 @@ function renderGame(){
     if (sq === checkSq) cls.push('check');
     if (tgts?.has(sq)){ cls.push('tgt'); if (I.INFO[S.itemPick].need === 'enemy') cls.push('enemy'); }
     if (S.gumPick && !gumTaken.includes(sq)) cls.push('tgt', 'gumt');
+    if (S.revivePick && item && I.reviveTargets(pos, S.revivePick).includes(sq)) cls.push('tgt', 'revt');
     if (item && pos.room != null && movable && legal.some(m => m.swap && m.swap.includes(sq))){ cls.push('tgt', 'roomt'); if (S.swapA === sq) cls.push('sel'); }
     const selectable = movable && pc && pc.s === pos.turn && legal.some(m => m.from === sq) && pos.room == null;
     if (selectable) cls.push('can');
@@ -2107,14 +2208,14 @@ function renderGame(){
     const pid = S.local ? null : (side === 0 ? g?.sente : g?.gote);
     const name = S.local ? SIDE[side] : nameOf(pid);
     const on = S.room && !S.local && pid && S.online.has(pid);
-    const who = `<div class="who" data-side="${side}">${BIRD[side]}<div class="nm"><b>${S.room && !S.local && pid ? `<i class="dot${on ? ' on' : ''}"></i>` : ''}${esc(name)}</b><span id="clock-${side}">0:00</span>${S.money[side] != null ? `<span class="money">持ち金 −${yen(S.money[side])}</span>` : ''}</div></div>`;
+    const who = `<div class="who" data-side="${side}"><span class="bwrap${S.muscle[side] ? ' buff' : ''}">${BIRD[side]}${S.muscle[side] ? MUSCLES : ''}</span><div class="nm"><b>${S.room && !S.local && pid ? `<i class="dot${on ? ' on' : ''}"></i>` : ''}${esc(name)}</b><span id="clock-${side}">0:00</span>${S.money[side] != null ? `<span class="money">持ち金 −${yen(S.money[side])}</span>` : ''}</div></div>`;
     let extra = '';
     if (item && S.cheat){
       if (pos.dual && pos.turn === side) extra += `<span class="fxchip" title="二刀流：あと${2 - pos.moved}手">${ICON.dual}</span>`;
       // graveyard: this side's pieces crushed by Galaxy Impact
       const dead = pos.crushed?.[1 - side] || [];
       if (dead.length) extra += `<span class="grave" id="grave-${side}" title="墓地：${dead.map(t => E.NAMES[t]).join('・')}">${GRAVE}<span class="cnt">${dead.length}</span></span>`;
-      extra += `<div class="bcards">${pos.cards[side].map(it => canSee(side) ? `<span class="bcard" title="${I.INFO[it].name}">${ICON[it]}</span>` : '<span class="bcard back">?</span>').join('')}</div>`;
+ extra += `<div class="bcards">${pos.cards[side].map(it => canSee(side) || S.openCard ? `<span class="bcard" title="${I.INFO[it].name}">${ICON[it]}</span>` : '<span class="bcard back">?</span>').join('')}</div>`;
     }
     return `<div class="band${isTurn ? ' turn' : ''}${isTurn && S.flash ? ' flash' : ''}">${who}<div class="hand">${hp}</div>${extra}<div class="badge ${side === 0 ? 'sente' : 'gote'}">${SIDE[side]}</div></div>`;
   };
@@ -2158,6 +2259,7 @@ function renderGame(){
   else if (inf.mySide === latest.turn){ big = 'あなたの番です'; small = `あなたは${MARK[inf.mySide]}${SIDE[inf.mySide]}`; }
   else { big = '相手の考慮中…'; small = `あなたは${MARK[inf.mySide]}${SIDE[inf.mySide]}`; }
   if (item && !inf.result && latest.dual) small = `二刀流：${MARK[latest.turn]}あと${2 - latest.moved}手（持ち駒は打てません）`;
+  if (S.revivePick) small = `ザオリク：墓地の${E.NAMES[S.revivePick]}を復活させるマスを選んでください（Escで取り消し）`;
   if (item && !inf.result && latest.room != null) small = 'ROOM展開中：玉以外の駒を2つ選ぶと入れ替えます（シャンブルズ）';
   if (item && !inf.result && latest.shimon) small = '死門：開いた駒をどのマスへでも動かせます。進んだ道の駒はすべて炭化します';
   if (S.pending) small = '送信中…';
@@ -2315,6 +2417,9 @@ async function playEv(ev){
     case 'bounce': ring(ev.sq, '#E53935'); banner('ボヨン！', '', above(ev.sq, .9)); SFX.boing(); break;
     case 'geon': fxGold(ev.sq); SFX.gold(); break;
     case 'zaoriku': return fxZaoriku(ev.sq, ev.side);
+    case 'zaorevive': return fxRevive(ev.sq, ev.side, ev.t);
+    case 'shenron': return fxShenron(ev.side, ev.item);
+    case 'reset': if (canSee(ev.side)) banner('駒の特殊効果をすべて消した', 'small'); break;
     case 'meteor': return fxMeteor(ev.target, ev.n);
     case 'boxesoff': if (canSee(ev.side)) banner('？ボックスを無しにしました', 'small'); break;
     case 'boxesback': if (canSee(ev.side)) banner('？ボックスを有りにしました', 'small'); break;
@@ -2357,7 +2462,7 @@ async function runAnim(){
         S.animPly = null; render();
         if (S.postFx){ S.postFx(); S.postFx = null; await wait(500); }
       }
-      for (const ev of evs) if (ev.type === 'zaoriku'){ const k = document.querySelector(`.cell[data-sq="${ev.sq}"] .pc`); if (k) k.style.visibility = 'hidden'; }
+      for (const ev of evs) if (ev.type === 'zaoriku' || ev.type === 'zaorevive'){ const k = document.querySelector(`.cell[data-sq="${ev.sq}"] .pc`); if (k) k.style.visibility = 'hidden'; }
       if (ent.isMove) clack();
       const rest = evs.filter(e => !e.pre);
       for (const ev of rest){ await wait(120); await playEv(ev); await wait(380); }
@@ -2450,6 +2555,7 @@ const CUTIN = {
   ge:     {small:'スタンド能力', big:'ゴールド・エクスペリエンス', bg:['#261a00','#0c0800'], burst:['#fffbe0','#f7d35a','#c9921a'], bolt:'#ffe08a', line:'rgba(255,220,120,.45)', stroke:'#4d3300'},
   hatsu:  {small:'念能力', big:'発', bg:['#0e1830','#04070e'], burst:['#ffffff','#e3efff','#8fb4ff'], bolt:'#cfe2ff', line:'rgba(220,235,255,.5)', stroke:'#1d3a6b'},
   gum:    {small:'伸縮自在の愛', big:'バンジーガム', bg:['#2e0b22','#0f030b'], burst:['#ffffff','#ffc2e2','#ff5fb0'], bolt:'#ff7ec2', line:'rgba(255,170,215,.45)', stroke:'#6b0f45'},
+  shenron:{small:'七つの玉', big:'シェンロン', bg:['#0b1f12','#020805'], burst:['#fff6c8','#ffb52e','#3fae4f'], bolt:'#7dff8a', line:'rgba(160,255,170,.4)', stroke:'#0b3d16'},
   note:   {small:'名前を書かれた者は死ぬ', big:'デスノート', bg:['#141414','#000000'], burst:['#ffffff','#bdbdbd','#5a5a5a'], bolt:'#d9d9d9', line:'rgba(220,220,220,.35)', stroke:'#000000'},
   room:   {small:'オペオペの能力', big:'ROOM', bg:['#05223a','#020b14'], burst:['#ffffff','#bdeeff','#38b6e8'], bolt:'#7fe0ff', line:'rgba(140,225,255,.45)', stroke:'#073a5a'},
   shimon: {small:'八門遁甲の陣', big:'死門', bg:['#2a0410','#0a0004'], burst:['#ffd6de','#e0244e','#7a0c26'], bolt:'#ff3b5c', line:'rgba(255,90,120,.4)', stroke:'#3a0010'},
@@ -2746,6 +2852,9 @@ async function demoRun(item, tok){
       await move(2, 12); banner('玉が取られた…', 'small'); await pause(700);
       pcs[13] = {...own('K'), ghost: 9}; draw();
       await fxZaoriku('d13', 0); await pause(600); break;
+    case 'shenron':
+      pcs = {12: own('G'), 2: en('R')}; draw(); await pause(400);
+      await fxShenron(0, 'room'); await pause(500); break;
     case 'note':
       pcs = {12: own('G'), 2: en('R')}; draw(); await pause(500);
       await fxNote('d2', '飛車'); delete pcs[2]; draw(); await pause(900); break;
@@ -2767,6 +2876,7 @@ const FINGER = `<svg viewBox="0 0 80 112"><g fill="#FFD9B3" stroke="#5a3a20" str
 function birdOf(side){ return document.querySelector(`.who[data-side="${side}"] .bird`)?.getBoundingClientRect(); }
 const okDice = d => Array.isArray(d) && d.length === 10 && d.every(v => Number.isInteger(v) && v >= 1 && v <= 6);
 function funFx(type, from, dice){
+  if (type === 'pro'){ fxProtein(from); return; }
   if (type === 'kb'){ if (okDice(dice)) fxBombee(from, dice); return; }
   const a = birdOf(from), b = birdOf(1 - from);
   if (!a || !b) return;
@@ -2912,6 +3022,63 @@ async function fxGalaxy2(from, crush, blown, side){
   };
 }
 
+/* ---------- Shenron: seven balls glow, the dragon rises, one wish is granted ---------- */
+const BALL = n => `<svg viewBox="0 0 40 40"><defs><radialGradient id="db${n}" cx="35%" cy="30%"><stop offset="0" stop-color="#fff6c8"/><stop offset=".35" stop-color="#ffb52e"/><stop offset="1" stop-color="#d9640b"/></radialGradient></defs><circle cx="20" cy="20" r="18" fill="url(#db${n})" stroke="#9a4a05" stroke-width="1.5"/>${Array.from({length: n}, (_, i) => { const a = i / n * Math.PI * 2, r = n > 1 ? 7 : 0; return `<polygon points="${[0,1,2,3,4,5,6,7,8,9].map(k => { const rr = k % 2 ? 1.6 : 3.8, aa = k / 10 * Math.PI * 2 - Math.PI / 2; return `${(20 + Math.cos(a) * r + Math.cos(aa) * rr).toFixed(1)},${(21 + Math.sin(a) * r + Math.sin(aa) * rr).toFixed(1)}`; }).join(' ')}" fill="#d81e1e"/>`; }).join('')}</svg>`;
+const DRAGON = `<svg viewBox="0 0 600 700" class="dragon"><path class="body" d="M300 720 C 70 610, 540 540, 300 440 S 50 290, 300 210 S 540 100, 330 70" fill="none" stroke="#1f5a2a" stroke-width="58" stroke-linecap="round"/><path class="body" d="M300 720 C 70 610, 540 540, 300 440 S 50 290, 300 210 S 540 100, 330 70" fill="none" stroke="#3fae4f" stroke-width="44" stroke-linecap="round"/><path class="body belly" d="M300 720 C 70 610, 540 540, 300 440 S 50 290, 300 210 S 540 100, 330 70" fill="none" stroke="#e8d27a" stroke-width="14" stroke-dasharray="10 9" stroke-linecap="round"/><g class="head"><path d="M290 40 q-40 -40 -70 -20 M370 40 q40 -40 70 -20" stroke="#e8d27a" stroke-width="8" fill="none" stroke-linecap="round"/><path d="M285 30 l-30 -40 M375 30 l30 -40" stroke="#c9b25a" stroke-width="10" stroke-linecap="round"/><ellipse cx="330" cy="70" rx="62" ry="44" fill="#3fae4f" stroke="#1f5a2a" stroke-width="6"/><path d="M290 92 q40 30 80 0" fill="#1f5a2a"/><path d="M296 96 l8 10 l8 -10 l8 10 l8 -10 l8 10 l8 -10 l8 10" stroke="#fff" stroke-width="3" fill="none"/><ellipse cx="305" cy="58" rx="11" ry="8" fill="#ff2a2a"/><ellipse cx="355" cy="58" rx="11" ry="8" fill="#ff2a2a"/><path d="M270 80 q-60 10 -110 60 M390 80 q60 10 110 60" stroke="#e8d27a" stroke-width="4" fill="none"/></g></svg>`;
+async function fxShenron(side, item){
+  const sky = fx('fx-dark shenron', '', {}, 12000);
+  const balls = fx('fx-balls', Array.from({length: 7}, (_, i) => `<span style="--a:${i / 7 * 360}deg">${BALL(i + 1)}</span>`).join(''), {}, 4000);
+  tone(130, 1.6, 'sine', .1, 260);
+  await wait(1400);
+  fx('fx-flash', '', {}, 520); balls.classList.add('out');
+  const thunder = setInterval(() => { fx('fx-flash shenron', '', {}, 300); noise(.7, 160, .6, 2, 'lowpass'); }, 900);
+  const dr = fx('fx-dragon', DRAGON, {}, 9000);
+  tone(70, 2.4, 'sawtooth', .07, 140); noise(2.2, 500, .3, 1.2, 'bandpass');
+  await wait(2300);
+  clearInterval(thunder);
+  await dqWindow(['願いを ひとつだけ かなえてやろう…']);
+  const seen = canSee(side) || S.openCard;
+  const el = fx('fx-roulette', `<div class="slot">${seen ? ICON[item] : '<b>?</b>'}</div><div class="lbl">${seen ? `${esc(I.INFO[item].name)} をさずかった` : '相手が願いをかなえた'}</div>`, {left: '50%', top: '50%'}, 1950);
+  SFX.chime();
+  await wait(1700);
+  dr.classList.add('out'); sky.classList.add('out');
+  await wait(500);
+}
+/* ---------- Zaoriku on the graveyard ---------- */
+async function fxRevive(sq, side, t){
+  const pc = document.querySelector(`.cell[data-sq="${sq}"] .pc`);
+  if (pc) pc.style.visibility = 'hidden';
+  const who = S.local ? SIDE[side] : (nameOf(side === 0 ? S.game?.sente : S.game?.gote).replace('（あなた）', '') || SIDE[side]);
+  [523, 659, 784, 1047, 784, 1047, 1319].forEach((f, i) => tone(f, .09, 'square', .06, null, i * .07));
+  await dqWindow([`${who}は ザオリクを となえた！`]);
+  const c = cellCenter(sq);
+  if (c){
+    const g = gridBox(), top = g ? g.top - 30 : 0;
+    fx('fx-pillar', '', {left: c.x + 'px', top: top + 'px', height: (c.y - top + c.h * .5) + 'px', width: c.w * 1.1 + 'px'}, 2400);
+    document.querySelector(`.cell[data-sq="${sq}"]`)?.animate([{background: 'rgba(255,220,90,0)'}, {background: 'rgba(255,230,120,.85)', offset: .4}, {background: 'rgba(255,220,90,0)'}], {duration: 2200});
+    [392, 523, 659, 784, 1047, 1319, 1568].forEach((f, i) => tone(f, .35, 'triangle', .08, null, .3 + i * .1));
+  }
+  await wait(900);
+  if (pc){ pc.style.visibility = ''; pc.animate([{opacity: 0, scale: .4, translate: '0 30%'}, {opacity: 1, scale: 1.15, translate: '0 -6%', offset: .7}, {opacity: 1, scale: 1, translate: '0 0'}], {duration: 900, easing: 'ease-out'}); }
+  await wait(700);
+  await dqWindow([`なんと 墓地の${E.NAMES[t]}が いきかえった！`]);
+}
+/* ---------- protein: big biceps on your icon ---------- */
+const ARM_SVG = `<svg viewBox="0 0 100 90"><path d="M98 66 C78 70 60 70 46 60 C34 52 26 40 28 24 C29 12 38 4 48 6 C58 8 60 18 56 26 C53 32 50 36 54 40 C60 30 74 26 84 34 C92 40 96 50 98 54 Z" fill="#F4C79B" stroke="#5a3a20" stroke-width="3.5" stroke-linejoin="round"/><path d="M60 42 C66 34 76 34 80 42" stroke="#5a3a20" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M34 12 C40 8 46 10 48 14" stroke="#5a3a20" stroke-width="2" fill="none"/></svg>`;
+const MUSCLES = `<span class="muscle l">${ARM_SVG}</span><span class="muscle r">${ARM_SVG}</span>`;
+const SHAKER = `<svg viewBox="0 0 40 60"><path d="M8 14 h24 l-3 42 h-18 z" fill="#e9eef5" stroke="#4a5568" stroke-width="2.5" stroke-linejoin="round"/><rect x="6" y="6" width="28" height="9" rx="3" fill="#2b6cb0" stroke="#1a365d" stroke-width="2"/><rect x="15" y="1" width="10" height="6" rx="2" fill="#1a365d"/><path d="M10 30 h20 l-1.5 24 h-17 z" fill="#c08457" opacity=".8"/><text x="20" y="27" font-size="7" font-weight="900" text-anchor="middle" fill="#2b6cb0" font-family="sans-serif">PRO</text></svg>`;
+async function fxProtein(side){
+  const b = birdOf(side); if (!b) return;
+  const el = fx('fx-fun shaker', SHAKER, {left: (b.left + b.width * .9) + 'px', top: (b.top + b.height * .2) + 'px', width: '34px', height: '51px'}, 1800);
+  for (let i = 0; i < 4; i++){ tone(220 + i * 30, .12, 'triangle', .08, 160, i * .22); }
+  banner('ゴクゴク…', 'small', {x: b.left + b.width / 2, y: Math.max(40, b.top - 20)});
+  await wait(1500);
+  S.muscle[side] = true; render();
+  const w = document.querySelector(`.who[data-side="${side}"] .bwrap`);
+  for (const m of w?.querySelectorAll('.muscle') || []) m.animate([{scale: 0}, {scale: 1.35, offset: .6}, {scale: 1}], {duration: 700, easing: 'cubic-bezier(.2,1.5,.4,1)'});
+  tone(110, .4, 'square', .08, 220); banner('ムキッ！！', '', {x: b.left + b.width / 2, y: Math.max(40, b.top - 10)});
+}
+
 /* ---------- Zaoriku: a retro RPG message window, then a golden pillar raises the king as a ghost ---------- */
 function dqWindow(lines){
   return new Promise(async res => {
@@ -2987,9 +3154,10 @@ async function fxBombee(from, dice){
     }, 70);
   });
   const sum = dice.reduce((x, y) => x + y, 0);
-  tray.querySelector('.sum').innerHTML = `合計 <b>${sum}</b> × 1000万円 ＝ <em>−${yen(sum)}</em> の赤字！`;
+  S.money[to] = (S.money[to] || 0) + sum;
+  tray.querySelector('.sum').innerHTML = `合計 <b>${sum}</b> × 1000万円 ＝ <em>−${yen(sum)}</em> の赤字！<small>借金の累計 −${yen(S.money[to])}</small>`;
   tone(330, .4, 'square', .06, 110); tone(220, .7, 'sawtooth', .05, 70, .3);
-  S.money[to] = sum; render();
+  render();
   await wait(3200);
   clearInterval(thunder);
   tray.classList.add('out'); storm.classList.add('out');
@@ -3013,6 +3181,16 @@ document.addEventListener('pointerdown', e => {
     if (cell && I.itemTargets(getRep().pos, S.itemPick).includes(+cell.dataset.sq)){ e.preventDefault(); pickTarget(+cell.dataset.sq); return; }
     if (!e.target.closest('[data-item]')){ S.itemPick = null; render(); }
     return;
+  }
+  if (S.revivePick){
+    const pos = getRep().pos, t = S.revivePick;
+    if (cell && I.reviveTargets(pos, t).includes(+cell.dataset.sq)){
+      const a = `${S.wishMark}zaoriku:${t}*${E.sqToUsi(+cell.dataset.sq)}`;
+      S.revivePick = null;
+      if (I.act(pos, a, false)) doAction(a); else { toast('そこには復活できません'); render(); }
+      return;
+    }
+    S.revivePick = null; render(); return;
   }
   if (S.gumPick){
     if (cell){
@@ -3128,7 +3306,15 @@ function runCommand(raw){
     if (S.view === 'game' && !S.local){ S.cmdSending = null; syncCmd(); }
     return false;
   };
-  if (c === 'card' || c === 'cards'){
+  if (c === 'opencard'){
+    S.openCard = !S.openCard; lsSet('opencard', S.openCard);
+    toast(S.openCard ? '相手のカードを表示します（自分の画面だけ）' : '相手のカードを伏せました');
+  } else if (c === 'protein') sendFun('pro');
+  else if (c === 'reset'){
+    if (S.view !== 'game' || !isItem()) toast('カード戦の対局中に使えます');
+    else if (!S.local && info().mySide === null) toast('対局しているプレイヤーだけ使えます');
+    else { S.boxQueued = {g: S.local ? 'local' : S.gameId, a: '#R'}; toast(canAct() ? '駒の特殊効果を消します' : '自分の番になったら駒の特殊効果を消します'); closeCmd(); applyNoBox(); return; }
+  } else if (c === 'card' || c === 'cards'){
     S.modal = 'rules';
   } else if (c === 'arigatohijirisan'){
     S.secretShown = !S.secretShown; lsSet('secretcmd', S.secretShown);
@@ -3183,13 +3369,17 @@ document.addEventListener('keydown', e => {
   if (S.modal && e.key === 'Escape'){ S.modal = null; render(); return; }
   if (S.view !== 'game') return;
   const n = getRep().states.length - 1;
-  if (e.key === 'Escape'){ S.sel = null; S.promo = null; S.confirm = null; S.itemPick = null; S.gumPick = false; render(); }
+  if (e.key === 'Escape'){ S.sel = null; S.promo = null; S.confirm = null; S.itemPick = null; S.gumPick = false; S.revivePick = null; render(); }
   else if (e.key === 'ArrowLeft'){ e.preventDefault(); setPly((S.viewPly ?? n) - 1); }
   else if (e.key === 'ArrowRight'){ e.preventDefault(); setPly((S.viewPly ?? n) + 1); }
 });
 document.addEventListener('click', e => {
   const pb = e.target.closest('[data-promo]');
   if (pb && S.promo){ const want = pb.dataset.promo === '1'; const mv = S.promo.cands.find(m => m.promote === want); doAction(E.toUsi(mv)); return; }
+  const wb = e.target.closest('[data-wish]');
+  if (wb){ S.modal = null; const a = `${S.wishMark}shenron:${wb.dataset.wish}`; if (I.act(getRep().pos, a, false)) doAction(a); else { toast('いまは使えません'); render(); } return; }
+  const rb = e.target.closest('[data-revive]');
+  if (rb){ S.modal = null; S.revivePick = rb.dataset.revive; render(); return; }
   const cr = e.target.closest('[data-cmd]');
   if (cr){ runCommand(cr.dataset.cmd); return; }
   const gb = e.target.closest('[data-gum]');
@@ -3239,7 +3429,7 @@ document.addEventListener('click', e => {
     case 'copy-link': copyText(inviteUrl(S.gameId), '招待リンクをコピーしました'); break;
     case 'sound': S.sound = !S.sound; lsSet('sound', S.sound); render(); break;
     case 'undo': S.localMoves = S.localMoves.slice(0, -1); S.localStamps = S.localStamps.slice(0, -1); S.viewPly = null; S.sel = null; S.itemPick = null; saveLocal(); render(); playNew(); break;
-    case 'reset': S.localRv = 3; S.localMoves = []; S.localStamps = []; S.localStart = Date.now(); S.localSeed = (Math.random() * 2**32) >>> 0; S.viewPly = null; S.sel = null; S.itemPick = null; S.animSeen = null; saveLocal(); render(); playNew(); break;
+    case 'reset': S.localRv = 4; S.localMoves = []; S.localStamps = []; S.localStart = Date.now(); S.localSeed = (Math.random() * 2**32) >>> 0; S.viewPly = null; S.sel = null; S.itemPick = null; S.animSeen = null; saveLocal(); render(); playNew(); break;
   }
 });
 window.addEventListener('hashchange', () => {
@@ -3275,7 +3465,7 @@ async function initCaps(resume){
     }, () => {});
     room.on('fun', msg => {
       const d = msg.data;
-      if (msg.sameTab || d?.game !== S.gameId || !['unko', 'fy', 'kb'].includes(d?.f) || ![0, 1].includes(d?.s)) return;
+      if (msg.sameTab || d?.game !== S.gameId || !['unko', 'fy', 'kb', 'pro'].includes(d?.f) || ![0, 1].includes(d?.s)) return;
       funFx(d.f, d.s, d.d);
     }, () => {});
     room.on('moved', msg => {
