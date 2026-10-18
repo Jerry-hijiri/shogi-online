@@ -334,6 +334,19 @@ button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px so
 @keyframes wburst{from{scale:.2 .2;opacity:1}50%{scale:1 1.3;opacity:.9}to{scale:1.3 1.8;opacity:0}}
 .fx-banner.white{color:#fff;-webkit-text-stroke-color:#3b5a85}
 
+/* ROOM */
+.room-dome{position:absolute;width:calc(var(--cw) * 5.3);height:calc(var(--ch) * 5.3);transform:translate(-50%,-50%);border-radius:50%;pointer-events:none;z-index:6;
+  background:radial-gradient(circle at 38% 30%,rgba(255,255,255,.45),rgba(170,235,255,.22) 22%,rgba(110,210,255,.16) 55%,rgba(90,200,255,.34) 69%,rgba(90,200,255,0) 71%);
+  box-shadow:0 0 26px 4px rgba(110,215,255,.45),inset 0 0 36px 6px rgba(170,235,255,.45);border:2px solid rgba(160,235,255,.85);animation:domepulse 2.4s ease-in-out infinite}
+.room-dome i{position:absolute;inset:6%;border-radius:50%;border:2px dashed rgba(190,240,255,.7);animation:spin 14s linear infinite}
+.room-dome.grow{animation:domegrow .7s cubic-bezier(.2,1.3,.4,1) both, domepulse 2.4s ease-in-out .7s infinite}
+@keyframes domegrow{from{scale:0;opacity:0}to{scale:1;opacity:1}}
+@keyframes domepulse{50%{box-shadow:0 0 36px 8px rgba(110,215,255,.6),inset 0 0 46px 10px rgba(170,235,255,.55)}}
+.fx-domeout{z-index:82;border-radius:50%;border:3px solid rgba(160,235,255,.9);background:radial-gradient(circle,rgba(170,235,255,.3),transparent 70%);animation:domeout .85s ease-in forwards}
+@keyframes domeout{to{scale:.1;opacity:0}}
+.fx-flash.cyan{background:#dff8ff}
+.cell.tgt.roomt::before{box-shadow:0 0 0 3px #38B6E8,0 0 14px #7FE0FF}
+
 /* zaoriku */
 .pc.revenant{opacity:.62;filter:grayscale(.6) brightness(1.15) drop-shadow(0 0 8px #9fd3ff);animation:ghostfloat 2.4s ease-in-out infinite;z-index:3}
 @keyframes ghostfloat{0%,100%{translate:0 -8%}50%{translate:0 -16%}}
@@ -715,7 +728,7 @@ const Shogi = (() => {
 // Actions: USI moves, "@item[:sq]" card use, "~a:sq" / "~d" / "~c" Bungee Gum attach / detach / contract.
 const ItemShogi = (() => {
   const B = Shogi;
-  const ITEMS = ['dual','star','giga','mush','volt','ge','hatsu','gum','impact','shimon','zaoriku'];
+  const ITEMS = ['dual','star','giga','mush','volt','ge','hatsu','gum','impact','shimon','zaoriku','room'];
   const INFO = {
     dual:   {name:'二刀流', short:'二刀流', need:'own', desc:'自分の駒1枚から手が生え、剣を2本装備する。このターン、その駒を2回続けて動かせる（持ち駒は打てない）。'},
     star:   {name:'スター', short:'スター', need:'own', desc:'自分の駒1枚が、このターンだけ全方向に1マス動けるようになる。'},
@@ -728,6 +741,7 @@ const ItemShogi = (() => {
     impact: {name:'拳骨衝突（ギャラクシーインパクト）', short:'拳骨衝突', need:'own', desc:'理外の覇気が盤面を穿つ！ 自分の駒1枚に覇気を纏わせる。その駒が次に相手の駒を取ると、その駒を粉砕する。粉砕された駒は持ち駒にならず墓地へ送られ、二度と使えない（きのこ・仕込みカードも貫通）。'},
     shimon: {name:'八門遁甲の陣（死門）', short:'死門', need:'own', desc:'己の掟を貫き通す奥義。自分の銀・金・桂・香・飛・角（成っていない駒）1枚が死門を開き、ワインレッドに染まる。このターン、その駒は駒を飛び越えて盤上のどのマスへも一気に移動できる。進んだ道と移動先の駒は敵味方問わずすべて炭化して墓地へ。最後に自分の駒も炭化して消える（玉は炭化せず、玉のマスへは移動できない）。'},
     zaoriku:{name:'ザオリク', short:'ザオリク', need:null, passive:true, desc:'持っているだけで効く復活の呪文。詰んだとき、または玉を取られたときに自動で唱え、玉が亡霊として復活する（詰みならその場、取られたら自陣の初期位置かその近くの空きマス）。亡霊の玉は持ち主の次の2回の番が終わるまで取られない。1回でなくなる。'},
+    room:   {name:'ROOM・シャンブルズ', short:'ROOM', need:'own', desc:'自分の駒1枚を中心に、周囲2マス（5×5）へ水色のドーム「ROOM」を張る。ドームの中の駒を2つ選ぶと、敵味方問わず一瞬で位置を入れ替える（シャンブルズ）。入れ替えがその番の1手になる。発のオーラを纏った相手の駒は入れ替えられない。'},
   };
   const SHIMON_OK = ['S','G','N','L','R','B'];
   const HAND_MAX = 3, BOX_MAX = 2;
@@ -748,7 +762,7 @@ const ItemShogi = (() => {
   function init(seed){
     const p = B.parseSfen(B.START);
     p.board.forEach((pc, i) => { if (pc) pc.id = i + 1; });
-    const st = {board:p.board, hands:p.hands, turn:0, T:0, moved:0, cardUsed:false, dual:false, nid:100,
+    const st = {board:p.board, hands:p.hands, turn:0, T:0, moved:0, cardUsed:false, dual:false, room:null, nid:100,
       cards:[[],[]], boxes:[], gum:[[],[]], crushed:[[],[]], rng:(seed >>> 0) || 1, ply:0, lastTo:-1, lastFrom:-1, result:null};
     spawnBox(st); spawnBox(st);
     return st;
@@ -800,7 +814,11 @@ const ItemShogi = (() => {
     return b;
   }
   // board after a move, as the mover can foresee it (hidden traps are unknown to them)
+  const inRoom = (center, q) => Math.max(Math.abs(((q/9)|0) - ((center/9)|0)), Math.abs(q%9 - center%9)) <= 2;
+  const swapUsi = m => 'X' + B.sqToUsi(m.swap[0]) + B.sqToUsi(m.swap[1]);
+  const moveUsi = m => m.swap ? swapUsi(m) : B.toUsi(m);
   function simBoard(st, mv){
+    if (mv.swap){ const b = st.board.slice(), [x, y] = mv.swap; [b[x], b[y]] = [b[y], b[x]]; return b; }
     if (mv.shimon) return shimonBoard(st.board, mv.from, mv.to);
     const b = st.board.slice(), s = st.turn;
     if (mv.drop){ b[mv.to] = {t:mv.drop, s, p:false}; return b; }
@@ -813,6 +831,17 @@ const ItemShogi = (() => {
     if (st.result) return [];
     const s = st.turn, b = st.board, T = st.T, out = [];
     const ok = mv => { if (inDanger(simBoard(st, mv), s, T+1)) return false; out.push(mv); return true; };
+    if (st.room != null){
+      // inside ROOM the only move is Shambles: swap two pieces in the dome
+      const qs = [];
+      for (let q=0;q<81;q++){ const p = b[q]; if (p && inRoom(st.room, q) && !(p.s !== s && p.aura)) qs.push(q); }
+      for (let i=0;i<qs.length;i++) for (let j=i+1;j<qs.length;j++){
+        const x = b[qs[i]], y = b[qs[j]];
+        if (x.s === y.s && x.t === y.t && x.p === y.p) continue;
+        if (ok({swap:[qs[i], qs[j]]}) && firstOnly) return out;
+      }
+      return out;
+    }
     for (let i=0;i<81;i++){
       const pc = b[i]; if (!pc || pc.s !== s || pc.frozen === T) continue;
       if (st.dual && pc.dual !== T) continue;
@@ -919,7 +948,7 @@ const ItemShogi = (() => {
   }
 
   function endTurn(n){
-    n.turn = 1 - n.turn; n.T++; n.moved = 0; n.cardUsed = false; n.dual = false; n.shimon = false;
+    n.turn = 1 - n.turn; n.T++; n.moved = 0; n.cardUsed = false; n.dual = false; n.shimon = false; n.room = null;
     if (n.T % 2 === 0) spawnBox(n);
   }
   // Zaoriku: a held card that revives the king as a ghost the moment the game would be lost
@@ -1010,15 +1039,25 @@ const ItemShogi = (() => {
         case 'gum': p.gum = true; break;
         case 'impact': p.impact = true; break;
         case 'shimon': n.shimon = true; p.shimon = T; break;
+        case 'room': n.room = sq; break;
       }
       if (!legal(n, true).length) return null; // never let a card leave you without a move
       const where = sq >= 0 ? `（${B.sqName(sq)}${pname(st.board[sq])}）` : '';
       const text = INFO[item].name + (item === 'volt' ? ' →' + where : where);
       return {st:n, ev:[{type:item, sq, side:s}], text, pub: item === 'ge' ? 'カードを伏せた' : text, item:true};
     }
-    const mv = legal(st).find(m => B.toUsi(m) === a);
+    const mv = legal(st).find(m => moveUsi(m) === a);
     if (!mv) return null;
     const n = clone(st), b = n.board, ev = [];
+    if (mv.swap){
+      const [x, y] = mv.swap, px = b[x], py = b[y];
+      b[x] = py; b[y] = px;
+      ev.push({type:'shambles', a:x, b:y, center:st.room, pre:true});
+      const text = `シャンブルズ（${B.sqName(x)}${pname(px)}⇔${B.sqName(y)}${pname(py)}）`;
+      n.room = null; n.ply++; n.lastTo = y; n.lastFrom = x; n.moved++;
+      endTurn(n); finish(n, ev);
+      return {st:n, ev, text, pub:text, item:false};
+    }
     if (mv.shimon){
       const pc = b[mv.from], path = linePath(mv.from, mv.to), burnt = [];
       for (const q of [...path, mv.to]){ const x = b[q]; if (x && x.t !== 'K'){ n.crushed[1 - x.s].push(x.t); b[q] = null; burnt.push(q); } }
@@ -1097,7 +1136,7 @@ const ItemShogi = (() => {
     return {states, entries, events, result: st.result, invalid, pos: st};
   }
 
-  return {ITEMS, INFO, HAND_MAX, init, legal, act, replay, canUse, itemTargets, inDanger, canGum, pullDest, gumSquares, hasGum, gumUserSq};
+  return {ITEMS, INFO, HAND_MAX, init, legal, act, replay, canUse, itemTargets, inDanger, canGum, pullDest, gumSquares, hasGum, gumUserSq, inRoom, swapUsi};
 })();
 // ENGINE END
 </script>
@@ -1123,7 +1162,7 @@ const S = {
   gameId: null, game: null, gameRef: null, unsubGame: null, notFound: false,
   local: false, localMoves: [], localStamps: [], localStart: Date.now(), localSeed: 1,
   repKey: null, rep: null, legalKey: null, legal: [],
-  viewPly: null, sel: null, promo: null, itemPick: null, gumPick: false, animPly: null, manualFlip: false, confirm: null, modal: null,
+  viewPly: null, sel: null, promo: null, itemPick: null, gumPick: false, animPly: null, swapA: null, manualFlip: false, confirm: null, modal: null,
   pending: false, dragging: false, animSeen: null, money: {0: null, 1: null},
   names: {}, avatars: {}, peers: [], online: new Set(),
   sound: lsGet('sound', true),
@@ -1156,6 +1195,7 @@ const ICON = {
   impact: `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M4 10 L11 15 L7 18 L14 24" stroke="#E0201A" stroke-width="2.4" fill="none" stroke-linejoin="round"/><path d="M44 8 L37 14 L41 17 L34 23" stroke="#E0201A" stroke-width="2.4" fill="none" stroke-linejoin="round"/><rect x="11" y="12" width="27" height="20" rx="7" fill="#1b1b1b" stroke="#E0201A" stroke-width="2.2"/><path d="M18 12.5 v9 M24.5 12.5 v9 M31 12.5 v9" stroke="#E0201A" stroke-width="1.6"/><path d="M11 25 h11 a4.5 4.5 0 0 1 0 9 h-6" fill="#1b1b1b" stroke="#E0201A" stroke-width="2.2" stroke-linejoin="round"/><rect x="15" y="32" width="19" height="11" rx="3" fill="#1b1b1b" stroke="#E0201A" stroke-width="2.2"/></svg>`,
   shimon: `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 2 C29 10 37 9 36 2 C45 11 46 24 41 33 C45 31 46 27 46 25 C48 38 38 46 24 46 C10 46 0 38 2 25 C2 27 3 31 7 33 C2 24 3 11 12 2 C11 9 19 10 24 2 Z" fill="#7A0C26" stroke="#2a0008" stroke-width="2" stroke-linejoin="round"/><path d="M24 13 C26 19 32 21 31 29 C34 27 35 25 35 23 C38 33 32 41 24 41 C16 41 10 33 13 23 C13 25 14 27 17 29 C16 21 22 19 24 13 Z" fill="#C2163F" opacity=".9"/><text x="24" y="37" font-size="17" font-weight="900" text-anchor="middle" fill="#fff" stroke="#2a0008" stroke-width="2.5" paint-order="stroke" font-family="Zen Maru Gothic, sans-serif">死</text></svg>`,
   zaoriku: `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 44 V20 L24 8 L34 20 V44 Z" fill="#3b3b6b" stroke="#16163a" stroke-width="2" stroke-linejoin="round"/><path d="M24 12 V40 M16 24 H32" stroke="#FFD43B" stroke-width="4" stroke-linecap="round"/><circle cx="24" cy="24" r="17" fill="none" stroke="#FFE58A" stroke-width="2" stroke-dasharray="3 4"/><circle cx="10" cy="10" r="2" fill="#FFE58A"/><circle cx="40" cy="12" r="2.5" fill="#FFE58A"/><circle cx="38" cy="38" r="1.8" fill="#FFE58A"/></svg>`,
+  room: `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M3 38 A21 21 0 0 1 45 38 Z" fill="rgba(110,215,255,.45)" stroke="#2a8fc0" stroke-width="2"/><path d="M9 34 A16 16 0 0 1 22 20" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round" opacity=".8"/><rect x="2" y="37" width="44" height="4" rx="2" fill="#2a8fc0"/><path d="M17 30 h6 l-3 -4 M31 30 h-6 l3 4" stroke="#0b3d5c" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
 };
 // Arms and swords around a piece. Coordinates: the piece fills x 50-150, y 16-124 of a 200x140 box.
 const ARM = (x1, y1, cx, cy, x2, y2) => `<path d="M${x1} ${y1} Q${cx} ${cy} ${x2} ${y2}" stroke="#3a2a1a" stroke-width="19" fill="none" stroke-linecap="round"/><path d="M${x1} ${y1} Q${cx} ${cy} ${x2} ${y2}" stroke="#FFE1BD" stroke-width="12" fill="none" stroke-linecap="round"/><circle cx="${x2}" cy="${y2}" r="12" fill="#FFE1BD" stroke="#3a2a1a" stroke-width="3.5"/>`;
@@ -1306,7 +1346,7 @@ function resultText(result, n){
 
 /* ---------- actions ---------- */
 async function doAction(a){
-  S.sel = null; S.promo = null; S.itemPick = null; S.gumPick = false;
+  S.sel = null; S.promo = null; S.itemPick = null; S.gumPick = false; S.swapA = null;
   if (S.local){
     S.localMoves = [...S.localMoves, a]; S.localStamps = [...S.localStamps, Date.now()];
     saveLocal(); render(); playNew(); return;
@@ -1806,6 +1846,8 @@ function itemsPanel(pos, inf){
     ${gum}<div class="idesc" id="idesc">${esc(desc)}</div></div>`;
 }
 
+// ROOM: a translucent light-blue dome, 2 squares around the caster
+function domeHtml(v, cols){ const vr = (v / cols) | 0, vc = v % cols; return `<div class="room-dome" style="left:calc(var(--cw) * ${vc + .5});top:calc(var(--ch) * ${vr + .5})"><i></i></div>`; }
 // Pink gum strands drawn over the board, in cell units (0-9 on both axes)
 function gumLayer(pos, flipped){
   let paths = '';
@@ -1849,7 +1891,8 @@ function renderGame(){
     if (sq === checkSq) cls.push('check');
     if (tgts?.has(sq)){ cls.push('tgt'); if (I.INFO[S.itemPick].need === 'enemy') cls.push('enemy'); }
     if (S.gumPick && !gumTaken.includes(sq)) cls.push('tgt', 'gumt');
-    const selectable = movable && pc && pc.s === pos.turn && legal.some(m => m.from === sq);
+    if (item && pos.room != null && movable && legal.some(m => m.swap && m.swap.includes(sq))){ cls.push('tgt', 'roomt'); if (S.swapA === sq) cls.push('sel'); }
+    const selectable = movable && pc && pc.s === pos.turn && legal.some(m => m.from === sq) && pos.room == null;
     if (selectable) cls.push('can');
     if (S.dragging && S.sel && S.sel.from === sq) cls.push('lifted');
     let inner = '';
@@ -1937,7 +1980,7 @@ function renderGame(){
 
   const table = `<div class="table">${band(top)}
     <div class="wood"><div class="files">${files}</div><div class="ranks">${ranks}</div>
-      <div class="grid" id="grid">${cells}${hoshi}${item ? gumLayer(pos, flipped) : ''}${promo}</div></div>
+      <div class="grid" id="grid">${cells}${hoshi}${item ? gumLayer(pos, flipped) : ''}${item && pos.room != null ? domeHtml(flipped ? 80 - pos.room : pos.room, 9) : ''}${promo}</div></div>
     ${band(bottom)}${overlay}</div>`;
 
   let big = '', small = '';
@@ -1949,6 +1992,7 @@ function renderGame(){
   else if (inf.mySide === latest.turn){ big = 'あなたの番です'; small = `あなたは${MARK[inf.mySide]}${SIDE[inf.mySide]}`; }
   else { big = '相手の考慮中…'; small = `あなたは${MARK[inf.mySide]}${SIDE[inf.mySide]}`; }
   if (item && !inf.result && latest.dual) small = `二刀流：${MARK[latest.turn]}あと${2 - latest.moved}手（持ち駒は打てません）`;
+  if (item && !inf.result && latest.room != null) small = 'ROOM展開中：ドームの中の駒を2つ選ぶと入れ替えます（シャンブルズ）';
   if (item && !inf.result && latest.shimon) small = '死門：開いた駒をどのマスへでも動かせます。進んだ道の駒はすべて炭化します';
   if (S.pending) small = '送信中…';
   if (S.netDown) small = '通信が切れています。自動で再接続します…';
@@ -2083,7 +2127,7 @@ function fxRoulette(item, hidden){
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const above = (sq, k = 1.1) => { const c = cellCenter(sq); return c && {x: c.x, y: Math.max(40, c.y - c.h * k)}; };
 function growDeco(sq, kind){ document.querySelector(`.cell[data-sq="${sq}"] .deco.${kind}`)?.classList.add('grow'); }
-const CUT_FOR = {shimon:'shimon', dual:'dual', star:'star', giga:'giga', mush:'mush', volt:'volt', hatsu:'hatsu', gum:'gum', geon:'ge'};
+const CUT_FOR = {room:'room', shimon:'shimon', dual:'dual', star:'star', giga:'giga', mush:'mush', volt:'volt', hatsu:'hatsu', gum:'gum', geon:'ge'};
 async function playEv(ev){
   if (CUT_FOR[ev.type]) await cutin(CUT_FOR[ev.type]);
   switch (ev.type){
@@ -2091,6 +2135,7 @@ async function playEv(ev){
     case 'star': fxStar(ev.sq); SFX.chime(); break;
     case 'giga': growDeco(ev.sq, 'giga'); SFX.slash(); break;
     case 'shimon': SFX.charge(); break;
+    case 'room': document.querySelector('.room-dome')?.classList.add('grow'); tone(220, 1.2, 'sine', .1, 660); noise(1, 900, .4, .8, 'bandpass'); banner('ROOM', 'blue', above(ev.sq, 1.6)); break;
     case 'mush': ring(ev.sq, '#E53935'); banner('パワーアップ！', '', above(ev.sq, .9)); SFX.boing(); break;
     case 'volt': fxVolt(ev.sq); SFX.zap(); break;
     case 'ge': if (canSee(ev.side)){ ring(ev.sq, '#F7C948'); banner('カードを仕込んだ', 'gold small'); } else banner('相手がカードを伏せた…', 'small'); SFX.chime(); break;
@@ -2113,6 +2158,7 @@ function playPre(ev){
   if (ev.type === 'gigaspin') return fxGigaSpin(ev.from, ev.sqs);
   if (ev.type === 'gumpull') return fxGumPull(ev.from, ev.to, ev.anchor);
   if (ev.type === 'shimondash') return fxShimon(ev.from, ev.to, ev.burnt);
+  if (ev.type === 'shambles') return fxShambles(ev.a, ev.b, ev.center);
   return Promise.resolve();
 }
 const animQ = [];
@@ -2231,6 +2277,7 @@ const CUTIN = {
   ge:     {small:'スタンド能力', big:'ゴールド・エクスペリエンス', bg:['#261a00','#0c0800'], burst:['#fffbe0','#f7d35a','#c9921a'], bolt:'#ffe08a', line:'rgba(255,220,120,.45)', stroke:'#4d3300'},
   hatsu:  {small:'念能力', big:'発', bg:['#0e1830','#04070e'], burst:['#ffffff','#e3efff','#8fb4ff'], bolt:'#cfe2ff', line:'rgba(220,235,255,.5)', stroke:'#1d3a6b'},
   gum:    {small:'伸縮自在の愛', big:'バンジーガム', bg:['#2e0b22','#0f030b'], burst:['#ffffff','#ffc2e2','#ff5fb0'], bolt:'#ff7ec2', line:'rgba(255,170,215,.45)', stroke:'#6b0f45'},
+  room:   {small:'オペオペの能力', big:'ROOM', bg:['#05223a','#020b14'], burst:['#ffffff','#bdeeff','#38b6e8'], bolt:'#7fe0ff', line:'rgba(140,225,255,.45)', stroke:'#073a5a'},
   shimon: {small:'八門遁甲の陣', big:'死門', bg:['#2a0410','#0a0004'], burst:['#ffd6de','#e0244e','#7a0c26'], bolt:'#ff3b5c', line:'rgba(255,90,120,.4)', stroke:'#3a0010'},
   impact: {small:'拳骨衝突', big:'ギャラクシーインパクト', bg:['#2b1508','#0b0503'], burst:['#FFFFF0','#FFE64F','#FF9A1F'], bolt:'#F0461E', line:'rgba(255,180,70,.35)', stroke:'#8a0d00', fist:true},
 };
@@ -2342,6 +2389,21 @@ async function fxGalaxy(from, to){
     for (const g of document.querySelectorAll('.grave')) g.animate([{scale: .3, opacity: 0}, {scale: 1.25, opacity: 1, offset: .6}, {scale: 1}], {duration: 700, easing: 'ease-out'});
   };
 }
+// Shambles: both pieces blink out and back in each other's place
+async function fxShambles(a, b, center){
+  const ca = cellCenter(a), cb = cellCenter(b); if (!ca || !cb) return;
+  fx('fx-flash cyan', '', {}, 380);
+  banner('シャンブルズ！', 'blue', {x: (ca.x + cb.x) / 2, y: Math.max(40, Math.min(ca.y, cb.y) - ca.h * 1.1)});
+  tone(1500, .12, 'square', .05, 300); tone(300, .12, 'square', .05, 1500, .08);
+  for (const q of [a, b]) document.querySelector(`.cell[data-sq="${q}"] .pc`)?.animate([{scale: '1 1', opacity: 1, filter: 'none'}, {scale: '1.35 .08', opacity: .2, filter: 'drop-shadow(0 0 10px #6ff) brightness(1.6)'}], {duration: 260, easing: 'ease-in', fill: 'forwards'});
+  for (const c of [ca, cb]) fx('fx-ring', '', {left: c.x + 'px', top: c.y + 'px', color: '#7FE0FF'}, 650);
+  await wait(300);
+  const dome = document.querySelector('.room-dome');
+  if (dome){ const r = dome.getBoundingClientRect(); fx('fx-domeout', '', {left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px'}, 900); }
+  S.postFx = () => {
+    for (const q of [a, b]) document.querySelector(`.cell[data-sq="${q}"] .pc`)?.animate([{scale: '1.35 .08', opacity: .2, filter: 'drop-shadow(0 0 10px #6ff) brightness(1.6)'}, {scale: '1 1', opacity: 1, filter: 'none'}], {duration: 280, easing: 'ease-out'});
+  };
+}
 // Death Gate: the piece turns wine red, dashes in a straight line, everything it passes burns, then it burns too
 async function fxShimon(from, to, burnt){
   const a = cellCenter(from), b = cellCenter(to); if (!a || !b) return;
@@ -2446,8 +2508,8 @@ function closeDemo(){ demoTok++; $('#demoRoot').innerHTML = ''; S.modal = 'rules
 async function demoRun(item, tok){
   const own = t => ({t, s:0, p:false}), en = t => ({t, s:1, p:false});
   const st = {T:0, dual:false};
-  let pcs = {}, gum = null;
-  const draw = () => { if (tok !== demoTok) throw 0; $('#demoGrid').innerHTML = demoCells(pcs, st, gum); };
+  let pcs = {}, gum = null, room = null;
+  const draw = () => { if (tok !== demoTok) throw 0; $('#demoGrid').innerHTML = demoCells(pcs, st, gum) + (room != null ? domeHtml(room, 5) : ''); };
   const pause = async ms => { await wait(ms); if (tok !== demoTok) throw 0; };
   const cellPc = i => document.querySelector(`#demoGrid .cell[data-sq="d${i}"] .pc`);
   const delta = (a, b) => { const p = cellCenter('d' + a), q = cellCenter('d' + b); return [q.x - p.x, q.y - p.y]; };
@@ -2500,6 +2562,11 @@ async function demoRun(item, tok){
       pcs = {12: own('S'), 7: en('P'), 2: en('R'), 11: own('G')}; draw(); await pause(500);
       await cutin('shimon'); pcs[12].shimon = 0; st.shimon = true; draw(); SFX.charge(); await pause(1300);
       await fxShimon('d12', 'd2', ['d7', 'd2']); st.shimon = false; delete pcs[12]; delete pcs[7]; delete pcs[2]; draw(); await pause(800); break;
+    case 'room':
+      pcs = {12: own('S'), 7: own('P'), 1: en('R'), 3: en('G')}; draw(); await pause(500);
+      await cutin('room'); room = 12; draw(); document.querySelector('#demoGrid .room-dome')?.classList.add('grow'); tone(220, 1.2, 'sine', .1, 660); await pause(1500);
+      for (const q of [7, 1]){ document.querySelector(`#demoGrid .cell[data-sq="d${q}"]`)?.classList.add('sel'); await pause(450); }
+      await fxShambles('d7', 'd1', 'd12'); room = null; [pcs[7], pcs[1]] = [pcs[1], pcs[7]]; draw(); S.postFx?.(); S.postFx = null; await pause(1000); break;
     case 'zaoriku':
       pcs = {12: own('K'), 2: en('R')}; draw(); await pause(600);
       await move(2, 12); banner('玉が取られた…', 'small'); await pause(700);
@@ -2676,6 +2743,16 @@ document.addEventListener('pointerdown', e => {
   if (!cell && !hp) return;
   if (!canMove()) return;
   const pos = getRep().pos, legal = legalMoves(), st = isItem() ? pos : null;
+  if (isItem() && pos.room != null){
+    if (!cell) return;
+    const q = +cell.dataset.sq;
+    if (!legal.some(m => m.swap && m.swap.includes(q))){ S.swapA = null; render(); return; }
+    if (S.swapA == null || S.swapA === q){ S.swapA = S.swapA === q ? null : q; render(); return; }
+    const pair = [S.swapA, q].sort((x, y) => x - y), m = legal.find(m => m.swap && m.swap[0] === pair[0] && m.swap[1] === pair[1]);
+    S.swapA = null;
+    if (m) doAction(I.swapUsi(m)); else { toast('その2つは入れ替えられません（自分の玉が取られる形になります）'); render(); }
+    return;
+  }
   if (cell){
     const sq = +cell.dataset.sq;
     if (S.sel){
