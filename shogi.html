@@ -359,6 +359,22 @@ body.cl-on .top,body.cl-on #lobby,body.cl-on #game{padding-left:220px;box-sizing
 .fx-flash.cyan{background:#dff8ff}
 .cell.tgt.roomt::before{box-shadow:0 0 0 3px #38B6E8,0 0 14px #7FE0FF}
 
+/* death note */
+.fx-note{left:50%;top:50%;transform:translate(-50%,-50%);z-index:89;perspective:1400px;animation:dicein .4s ease-out both}
+.fx-note.out{animation:dqout .45s ease-in forwards}
+.fx-note .nb{position:relative;width:520px;height:330px;display:grid;grid-template-columns:1fr 1fr;filter:drop-shadow(0 20px 40px rgba(0,0,0,.7))}
+.fx-note .pg{background:repeating-linear-gradient(#f4f1ea 0 31px,#cfc8bb 31px 32px);border:1px solid #bdb5a6}
+.fx-note .pg.left{border-radius:8px 0 0 8px;padding:24px}
+.fx-note .pg.left i{display:block;height:2px;margin:26px 0 0;background:rgba(40,30,20,.25);width:80%}
+.fx-note .pg.right{border-radius:0 8px 8px 0;padding:34px 26px}
+.fx-note .ink{margin:0;font:400 36px/1.4 "Yusei Magic","Zen Maru Gothic",serif;color:#111;letter-spacing:.08em}
+.fx-note .cover{position:absolute;left:50%;top:0;width:50%;height:100%;background:linear-gradient(135deg,#1c1c1c,#050505);border-radius:0 8px 8px 0;transform-origin:0 50%;
+  display:grid;place-items:center;backface-visibility:hidden;animation:noteopen .9s cubic-bezier(.4,0,.2,1) .25s forwards;box-shadow:inset 6px 0 10px rgba(255,255,255,.08)}
+.fx-note .cover b{font:900 28px Georgia,serif;color:#e8e8e8;letter-spacing:.12em;text-align:center;line-height:1.2}
+@keyframes noteopen{to{transform:rotateY(-180deg)}}
+.fx-wind{z-index:86;height:6px;margin-top:-3px;transform-origin:0 50%;border-radius:3px;background:linear-gradient(90deg,rgba(255,255,255,0),rgba(220,245,255,.85) 40%,rgba(255,255,255,0));animation:wind .9s ease-out forwards}
+@keyframes wind{0%{scale:0 1;opacity:0}25%{opacity:1}100%{scale:1 1;opacity:0;translate:0 -10px}}
+
 /* meteor */
 .fx-meteor{z-index:88;width:0;height:0}
 .fx-meteor i{position:absolute;left:-26px;top:-26px;width:52px;height:52px;border-radius:50%;
@@ -748,7 +764,9 @@ const Shogi = (() => {
 // Actions: USI moves, "@item[:sq]" card use, "~a:sq" / "~d" / "~c" Bungee Gum attach / detach / contract.
 const ItemShogi = (() => {
   const B = Shogi;
-  const ITEMS = ['dual','star','giga','mush','volt','ge','hatsu','gum','impact','shimon','zaoriku','room'];
+  const ITEMS = ['dual','star','giga','mush','volt','ge','hatsu','gum','impact','shimon','zaoriku','room','note'];
+  // box draws must not change for older games: rule version 3 added the Death Note
+  const poolFor = st => st.rv >= 3 ? ITEMS : ITEMS.slice(0, 12);
   const INFO = {
     dual:   {name:'二刀流', short:'二刀流', need:'own', desc:'自分の駒1枚から手が生え、剣を2本装備する。このターン、その駒を2回続けて動かせる（持ち駒は打てない）。'},
     star:   {name:'スター', short:'スター', need:'own', desc:'自分の駒1枚が、このターンだけ全方向に1マス動けるようになる。'},
@@ -758,7 +776,8 @@ const ItemShogi = (() => {
     ge:     {name:'ゴールド・エクスペリエンス', short:'ゴールドE', need:'own', desc:'仕込みカード。自分の駒（玉以外）の裏に伏せておく。その駒が取られそうになると発動し、金のオーラで宙に浮いて相手の次の番まで取られない。'},
     hatsu:  {name:'発', short:'発', need:'own', desc:'自分の駒1枚が白いオーラを纏う。纏った駒は相手のカードの攻撃を受けない（10万ボルトの対象にならない、ギガスラッシュの巻き添えにならない、拳骨衝突でも粉砕されず普通に取られるだけ）。'},
     gum:    {name:'バンジーガム', short:'バンジーガム', need:'own', desc:'自分の駒1枚がガムのオーラを纏い、バンジーガムを操れるようになる。ガムを2か所（駒かマス）につけて縮めると、2つ目につけた駒が1つ目の方へ引き寄せられる。縮めるとその番の1手になる。つける・はずすは自由。'},
-    impact: {name:'拳骨衝突（ギャラクシーインパクト）', short:'拳骨衝突', need:'own', desc:'理外の覇気が盤面を穿つ！ 自分の駒1枚に覇気を纏わせる。その駒が次に相手の駒を取ると、その駒を粉砕する。粉砕された駒は持ち駒にならず墓地へ送られ、二度と使えない（仕込みカードも貫通）。'},
+    impact: {name:'拳骨衝突（ギャラクシーインパクト）', short:'拳骨衝突', need:'own', desc:'理外の覇気が盤面を穿つ！ 自分の駒1枚から、その前方（同じ列）へ放つ。相手のいちばん手前の駒は粉砕されて墓地へ。その後ろに並ぶ相手の駒はすべて風で場外へ吹き飛ばされ、相手の持ち駒に戻る（玉と発のオーラの駒は影響を受けない）。'},
+    note:   {name:'デスノート', short:'デスノート', need:'enemy', desc:'このノートに名前を書かれた駒は死ぬ。相手の駒（玉以外）を1枚選ぶと、その駒は息絶えて墓地へ送られる。発のオーラを纏った駒には効かない。'},
     shimon: {name:'八門遁甲の陣（死門）', short:'死門', need:'own', desc:'己の掟を貫き通す奥義。自分の銀・金・桂・香・飛・角（成っていない駒）1枚が死門を開き、ワインレッドに染まる。このターン、その駒は駒を飛び越えて盤上のどのマスへも一気に移動できる。進んだ道と移動先の駒は敵味方問わずすべて炭化して墓地へ。最後に自分の駒も炭化して消える（玉は炭化せず、玉のマスへは移動できない）。'},
     zaoriku:{name:'ザオリク', short:'ザオリク', need:null, passive:true, desc:'持っているだけで効く復活の呪文。詰んだとき、または玉を取られたときに自動で唱え、玉が亡霊として復活する（詰みならその場、取られたら自陣の初期位置かその近くの空きマス）。亡霊の玉は持ち主の次の2回の番が終わるまで取られない。1回でなくなる。'},
     room:   {name:'ROOM・シャンブルズ', short:'ROOM', need:'own', desc:'自分の駒1枚から盤全体へ水色のドーム「ROOM」を張る。盤上のどこでも、玉以外の駒を2つ選ぶと、敵味方問わず一瞬で位置を入れ替える（シャンブルズ）。入れ替えがその番の1手になる。発のオーラを纏った相手の駒は入れ替えられない。'},
@@ -786,7 +805,8 @@ const ItemShogi = (() => {
     p.board.forEach((pc, i) => { if (pc) pc.id = i + 1; });
     const st = {board:p.board, hands:p.hands, turn:0, T:0, moved:0, cardUsed:false, dual:false, room:null, nid:100,
       cards:[[],[]], boxes:[], gum:[[],[]], crushed:[[],[]], rng:(seed >>> 0) || 1, ply:0, lastTo:-1, lastFrom:-1, result:null,
-      boxesOn: !opts?.boxesOff, noFree: false, mushGuard: !!opts?.legacyMush};
+      boxesOn: !opts?.boxesOff, noFree: false, rv: opts?.rv ?? (opts?.legacyMush ? 1 : 3)};
+    st.mushGuard = st.rv < 2;
     spawnBox(st); spawnBox(st);
     return st;
   }
@@ -916,18 +936,30 @@ const ItemShogi = (() => {
         if (item === 'mush' && p.mush) continue;
         if (item === 'star' && (p.frozen === st.T || p.star === st.T)) continue;
         if (item === 'giga' && p.giga) continue;
-        if (item === 'impact' && p.impact) continue;
+        if (item === 'impact' && (st.rv >= 3 ? impactLine(st, i).first < 0 : p.impact)) continue;
         if (item === 'hatsu' && p.aura) continue;
         if (item === 'gum' && p.gum) continue;
         if (item === 'dual' && !movers.has(i)) continue;
         if (item === 'shimon' && (!SHIMON_OK.includes(p.t) || p.p || p.frozen === st.T)) continue;
         out.push(i);
       }
-      if (need === 'enemy' && p.s !== s && !(item === 'volt' && p.aura)) out.push(i);
+      if (need === 'enemy' && p.s !== s && !((item === 'volt' || item === 'note') && p.aura) && !(item === 'note' && p.t === 'K')) out.push(i);
     }
     return out;
   }
+  // Galaxy Impact (rule version 3): straight ahead along the file, the nearest enemy piece is crushed and the ones behind it are blown off the board
+  function impactLine(st, sq){
+    const s = st.board[sq].s, step = s === 0 ? -9 : 9, blown = [];
+    let first = -1;
+    for (let q = sq + step; q >= 0 && q < 81; q += step){
+      const x = st.board[q];
+      if (!x || x.s === s || x.t === 'K' || x.aura) continue;
+      if (first < 0) first = q; else blown.push(q);
+    }
+    return {first, blown};
+  }
   function canUse(st, item, free){
+    if (item === 'note' && st.rv < 3) return false;
     if (INFO[item]?.passive) return !st.result && free && !st.cards[st.turn].includes(item);
     if (st.result || st.cardUsed || st.moved > 0 || !INFO[item]) return false;
     if (!free && !st.cards[st.turn].includes(item)) return false;
@@ -1008,7 +1040,7 @@ const ItemShogi = (() => {
     if (bi < 0) return '';
     n.boxes.splice(bi, 1);
     if (n.cards[owner].length < HAND_MAX){
-      const it = ITEMS[Math.floor(rand(n) * ITEMS.length)];
+      const pool = poolFor(n), it = pool[Math.floor(rand(n) * pool.length)];
       n.cards[owner].push(it); ev.push({type:'box', side:owner, item:it, sq}); return '　＋カード';
     }
     ev.push({type:'boxlost', sq}); return '';
@@ -1074,6 +1106,7 @@ const ItemShogi = (() => {
       let sq = -1;
       if (INFO[item].need){ sq = B.usiToSq(u || ''); if (!itemTargets(st, item).includes(sq)) return null; }
       const n = clone(st), p = sq >= 0 ? n.board[sq] : null;
+      let ev = [{type:item, sq, side:s}], extra = '';
       if (INFO[item].passive){ n.cards[s].push(item); return {st:n, ev:[], text:`${INFO[item].name}を手札に加えた`, pub:'カードを手札に加えた', item:true}; }
       if (!free) n.cards[s].splice(n.cards[s].indexOf(item), 1);
       n.cardUsed = true;
@@ -1086,14 +1119,26 @@ const ItemShogi = (() => {
         case 'ge': p.trap = true; break;
         case 'hatsu': p.aura = true; break;
         case 'gum': p.gum = true; break;
-        case 'impact': p.impact = true; break;
+        case 'impact':
+          if (st.rv >= 3){
+            const L = impactLine(st, sq);
+            n.crushed[s].push(n.board[L.first].t); n.board[L.first] = null;
+            for (const q of L.blown){ n.hands[1 - s][n.board[q].t]++; n.board[q] = null; }
+            ev = [{type:'gi2', from:sq, crush:L.first, blown:L.blown, side:s, pre:true}];
+            extra = `：${B.sqName(L.first)}${pname(st.board[L.first])}を粉砕${L.blown.length ? `、${L.blown.length}枚を吹き飛ばした` : ''}`;
+          } else p.impact = true;
+          break;
+        case 'note':
+          n.crushed[s].push(p.t); n.board[sq] = null;
+          ev = [{type:'notekill', sq, name: B.sqName(sq) + pname(st.board[sq]), side:s, pre:true}];
+          break;
         case 'shimon': n.shimon = true; p.shimon = T; break;
         case 'room': n.room = sq; break;
       }
       if (!legal(n, true).length) return null; // never let a card leave you without a move
       const where = sq >= 0 ? `（${B.sqName(sq)}${pname(st.board[sq])}）` : '';
-      const text = INFO[item].name + (item === 'volt' ? ' →' + where : where);
-      return {st:n, ev:[{type:item, sq, side:s}], text, pub: item === 'ge' ? 'カードを伏せた' : text, item:true};
+      const text = INFO[item].name + (item === 'volt' || item === 'note' ? ' →' + where : where) + extra;
+      return {st:n, ev, text, pub: item === 'ge' ? 'カードを伏せた' : text, item:true};
     }
     const mv = legal(st).find(m => moveUsi(m) === a);
     if (!mv) return null;
@@ -1249,6 +1294,7 @@ const ICON = {
   shimon: `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 2 C29 10 37 9 36 2 C45 11 46 24 41 33 C45 31 46 27 46 25 C48 38 38 46 24 46 C10 46 0 38 2 25 C2 27 3 31 7 33 C2 24 3 11 12 2 C11 9 19 10 24 2 Z" fill="#7A0C26" stroke="#2a0008" stroke-width="2" stroke-linejoin="round"/><path d="M24 13 C26 19 32 21 31 29 C34 27 35 25 35 23 C38 33 32 41 24 41 C16 41 10 33 13 23 C13 25 14 27 17 29 C16 21 22 19 24 13 Z" fill="#C2163F" opacity=".9"/><text x="24" y="37" font-size="17" font-weight="900" text-anchor="middle" fill="#fff" stroke="#2a0008" stroke-width="2.5" paint-order="stroke" font-family="Zen Maru Gothic, sans-serif">死</text></svg>`,
   zaoriku: `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 44 V20 L24 8 L34 20 V44 Z" fill="#3b3b6b" stroke="#16163a" stroke-width="2" stroke-linejoin="round"/><path d="M24 12 V40 M16 24 H32" stroke="#FFD43B" stroke-width="4" stroke-linecap="round"/><circle cx="24" cy="24" r="17" fill="none" stroke="#FFE58A" stroke-width="2" stroke-dasharray="3 4"/><circle cx="10" cy="10" r="2" fill="#FFE58A"/><circle cx="40" cy="12" r="2.5" fill="#FFE58A"/><circle cx="38" cy="38" r="1.8" fill="#FFE58A"/></svg>`,
   room: `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M3 38 A21 21 0 0 1 45 38 Z" fill="rgba(110,215,255,.45)" stroke="#2a8fc0" stroke-width="2"/><path d="M9 34 A16 16 0 0 1 22 20" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round" opacity=".8"/><rect x="2" y="37" width="44" height="4" rx="2" fill="#2a8fc0"/><path d="M17 30 h6 l-3 -4 M31 30 h-6 l3 4" stroke="#0b3d5c" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  note: `<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="9" y="4" width="30" height="40" rx="2.5" fill="#141414" stroke="#000" stroke-width="2"/><rect x="11" y="4" width="3" height="40" fill="#2a2a2a"/><text x="26.5" y="21" font-size="6.6" font-weight="900" text-anchor="middle" fill="#eaeaea" font-family="Georgia, serif" letter-spacing=".4">DEATH</text><text x="26.5" y="29" font-size="6.6" font-weight="900" text-anchor="middle" fill="#eaeaea" font-family="Georgia, serif" letter-spacing=".4">NOTE</text></svg>`,
 };
 // Arms and swords around a piece. Coordinates: the piece fills x 50-150, y 16-124 of a 200x140 box.
 const ARM = (x1, y1, cx, cy, x2, y2) => `<path d="M${x1} ${y1} Q${cx} ${cy} ${x2} ${y2}" stroke="#3a2a1a" stroke-width="19" fill="none" stroke-linecap="round"/><path d="M${x1} ${y1} Q${cx} ${cy} ${x2} ${y2}" stroke="#FFE1BD" stroke-width="12" fill="none" stroke-linecap="round"/><circle cx="${x2}" cy="${y2}" r="12" fill="#FFE1BD" stroke="#3a2a1a" stroke-width="3.5"/>`;
@@ -1365,8 +1411,8 @@ function replayFor(mode, moves, seed, free, opts){
     events: r.kifu.map(() => []), result: r.result, invalid: r.invalid};
 }
 function getRep(){
-  const bx = !S.local && !!S.game?.bx, lm = !S.local && !!S.game && !S.game.rv, mv = curMoves(), k = curMode() + '|' + curSeed() + '|' + bx + lm + '|' + mv.join(' ');
-  if (S.repKey !== k){ S.rep = replayFor(curMode(), mv, curSeed(), false, {boxesOff: bx, legacyMush: lm}); S.repKey = k; }
+  const bx = !S.local && !!S.game?.bx, rv = S.local ? (S.localRv || 3) : (S.game?.rv || 1), mv = curMoves(), k = curMode() + '|' + curSeed() + '|' + bx + rv + '|' + mv.join(' ');
+  if (S.repKey !== k){ S.rep = replayFor(curMode(), mv, curSeed(), false, {boxesOff: bx, rv}); S.repKey = k; }
   return S.rep;
 }
 function legalMoves(){
@@ -1406,7 +1452,7 @@ async function doAction(a){
   }
   const g = S.game; if (!g) return;
   const moves = [...(g.moves || []), a], stamps = [...(g.stamps || []), Date.now()];
-  const rep = replayFor(g.mode || 'normal', moves, g.seed || 1, false, {boxesOff: !!g.bx, legacyMush: !g.rv});
+  const rep = replayFor(g.mode || 'normal', moves, g.seed || 1, false, {boxesOff: !!g.bx, rv: g.rv || 1});
   if (rep.invalid){ toast('その操作はできません'); render(); return; }
   if (S.net === 'ntfy'){ Ntfy.send({k:'act', i: moves.length - 1, a, t: stamps[stamps.length - 1], by: S.myId}); return; }
   const patch = {moves, stamps, updatedAt: Date.now(), turn: rep.pos.turn};
@@ -1445,11 +1491,11 @@ function pickTarget(sq){
 
 /* ---------- local practice ---------- */
 const practiceKey = () => S.cheat ? 'practice3' : 'practiceN';
-function saveLocal(){ lsSet(practiceKey(), {m:S.localMoves, t:S.localStamps, s:S.localStart, seed:S.localSeed}); }
+function saveLocal(){ lsSet(practiceKey(), {m:S.localMoves, t:S.localStamps, s:S.localStart, seed:S.localSeed, rv:S.localRv}); }
 function openLocal(){
   const d = lsGet(practiceKey(), null);
-  if (d){ S.localMoves = d.m || []; S.localStamps = d.t || []; S.localStart = d.s || Date.now(); S.localSeed = d.seed || 1; }
-  else { S.localMoves = []; S.localStamps = []; S.localSeed = (Math.random() * 2**32) >>> 0; S.localStart = Date.now(); }
+  if (d){ S.localMoves = d.m || []; S.localStamps = d.t || []; S.localStart = d.s || Date.now(); S.localSeed = d.seed || 1; S.localRv = d.rv || 2; }
+  else { S.localMoves = []; S.localStamps = []; S.localSeed = (Math.random() * 2**32) >>> 0; S.localStart = Date.now(); S.localRv = 3; }
   closeGame();
   Object.assign(S, {view:'game', local:true, gameId:null, game:null, viewPly:null, sel:null, promo:null, itemPick:null, confirm:null, manualFlip:false, animSeen:null});
   setPresence(); render(); playNew();
@@ -1666,13 +1712,13 @@ async function createGame(pref, players, mode){
   if (S.net === 'ntfy'){
     const id = rid(12);
     const names = {...(players ? S.game?.names : {}), [S.myId]: S.myName.trim()};
-    try { await Ntfy.post(id, {k:'create', by:S.myId, t:now, g:{mode, seed, sente, gote, names, furigoma, bx: mode === 'item' ? 1 : 0, rv: 2, cmd: {[S.myId]: !!S.cheat}}, n:rid(10)}); }
+    try { await Ntfy.post(id, {k:'create', by:S.myId, t:now, g:{mode, seed, sente, gote, names, furigoma, bx: mode === 'item' ? 1 : 0, rv: 3, cmd: {[S.myId]: !!S.cheat}}, n:rid(10)}); }
     catch (e){ toast(errText(e)); return; }
     openGame(id); return id;
   }
   const id = 'g' + now.toString(36) + Math.random().toString(36).slice(2, 6);
   const data = {sente, gote, creator: S.myId, status: sente && gote ? 'playing' : 'waiting', mode, seed, moves:[], stamps:[], result:null,
-    createdAt: now, updatedAt: now, turn: 0, furigoma, bx: mode === 'item' ? 1 : 0, rv: 2, cmd: {[S.myId]: !!S.cheat}};
+    createdAt: now, updatedAt: now, turn: 0, furigoma, bx: mode === 'item' ? 1 : 0, rv: 3, cmd: {[S.myId]: !!S.cheat}};
   if (sente && gote) data.startedAt = now;
   try { await S.db.doc('games/' + id).set(data); openGame(id); return id; }
   catch (e){ toast(errText(e)); }
@@ -1786,7 +1832,7 @@ function render(){
   $('#lobby').hidden = S.view !== 'lobby';
   $('#game').hidden = S.view !== 'game';
   $('#topRight').innerHTML = (S.view === 'game' ? `<button class="btn" data-act="lobby">← ロビーへ</button>` : '')
-    + (S.cheat ? `<button class="btn" data-act="rules">カードの説明</button>` : '');
+    + '';
   if (S.view === 'lobby'){ $('#game').innerHTML = ''; (S.net === 'ntfy' ? renderWebLobby : renderLobby)(); }
   else { $('#lobby').innerHTML = ''; renderGame(); }
   renderModal();
@@ -1807,6 +1853,7 @@ const SECRET_COMMANDS = [
   ['item', 'カード戦の表示', () => S.cheat],
   ['itembox', '？ボックスの有り/無し（相手に出ない）', () => S.view === 'game' && isItem() && !getRep().pos.noBoxes],
   ['destroy', '相手の持ち札を全て破壊'],
+  ['card', 'カードの説明を開く'],
 ];
 function renderCmdList(){
   const el = $('#cmdList');
@@ -2282,6 +2329,8 @@ function playPre(ev){
   if (ev.type === 'gumpull') return fxGumPull(ev.from, ev.to, ev.anchor);
   if (ev.type === 'shimondash') return fxShimon(ev.from, ev.to, ev.burnt);
   if (ev.type === 'shambles') return fxShambles(ev.a, ev.b, ev.center);
+  if (ev.type === 'notekill') return fxNote(ev.sq, ev.name);
+  if (ev.type === 'gi2') return fxGalaxy2(ev.from, ev.crush, ev.blown, ev.side);
   return Promise.resolve();
 }
 const animQ = [];
@@ -2400,6 +2449,7 @@ const CUTIN = {
   ge:     {small:'スタンド能力', big:'ゴールド・エクスペリエンス', bg:['#261a00','#0c0800'], burst:['#fffbe0','#f7d35a','#c9921a'], bolt:'#ffe08a', line:'rgba(255,220,120,.45)', stroke:'#4d3300'},
   hatsu:  {small:'念能力', big:'発', bg:['#0e1830','#04070e'], burst:['#ffffff','#e3efff','#8fb4ff'], bolt:'#cfe2ff', line:'rgba(220,235,255,.5)', stroke:'#1d3a6b'},
   gum:    {small:'伸縮自在の愛', big:'バンジーガム', bg:['#2e0b22','#0f030b'], burst:['#ffffff','#ffc2e2','#ff5fb0'], bolt:'#ff7ec2', line:'rgba(255,170,215,.45)', stroke:'#6b0f45'},
+  note:   {small:'名前を書かれた者は死ぬ', big:'デスノート', bg:['#141414','#000000'], burst:['#ffffff','#bdbdbd','#5a5a5a'], bolt:'#d9d9d9', line:'rgba(220,220,220,.35)', stroke:'#000000'},
   room:   {small:'オペオペの能力', big:'ROOM', bg:['#05223a','#020b14'], burst:['#ffffff','#bdeeff','#38b6e8'], bolt:'#7fe0ff', line:'rgba(140,225,255,.45)', stroke:'#073a5a'},
   shimon: {small:'八門遁甲の陣', big:'死門', bg:['#2a0410','#0a0004'], burst:['#ffd6de','#e0244e','#7a0c26'], bolt:'#ff3b5c', line:'rgba(255,90,120,.4)', stroke:'#3a0010'},
   impact: {small:'拳骨衝突', big:'ギャラクシーインパクト', bg:['#2b1508','#0b0503'], burst:['#FFFFF0','#FFE64F','#FF9A1F'], bolt:'#F0461E', line:'rgba(255,180,70,.35)', stroke:'#8a0d00', fist:true},
@@ -2695,7 +2745,13 @@ async function demoRun(item, tok){
       await move(2, 12); banner('玉が取られた…', 'small'); await pause(700);
       pcs[13] = {...own('K'), ghost: 9}; draw();
       await fxZaoriku('d13', 0); await pause(600); break;
+    case 'note':
+      pcs = {12: own('G'), 2: en('R')}; draw(); await pause(500);
+      await fxNote('d2', '飛車'); delete pcs[2]; draw(); await pause(900); break;
     case 'impact':
+      pcs = {12: own('G'), 7: en('S'), 2: en('R'), 11: own('P')}; draw(); await pause(500);
+      await fxGalaxy2('d12', 'd7', ['d2'], 0); delete pcs[7]; delete pcs[2]; draw(); S.postFx?.(); S.postFx = null; await pause(900); break;
+    case 'impact_old':
       pcs = {7: own('G'), 2: en('R')}; draw(); await pause(500);
       pcs[7].impact = true; draw(); fxHakiCharge('d7'); banner('覇気を纏った', 'red small'); SFX.charge(); await pause(1400);
       await fxGalaxy('d7', 'd2'); pcs[7].impact = false; pcs[2] = pcs[7]; delete pcs[7]; draw(); S.postFx?.(); S.postFx = null; await pause(900); break;
@@ -2780,6 +2836,79 @@ async function fxMeteor(target, n){
   banner(`持ち札${n}枚を破壊！`, 'red small', {x: innerWidth / 2, y: innerHeight * .3});
   await wait(1100);
   dark.classList.add('out');
+}
+
+/* ---------- Death Note: the notebook opens, the name is written, the piece collapses ---------- */
+async function fxNote(sq, name){
+  const dark = fx('fx-dark', '', {}, 9000);
+  const tgt = cloneOf(sq);
+  await cutin('note');
+  const book = fx('fx-note', `<div class="nb"><div class="pg left"><i></i><i></i><i></i><i></i><i></i></div><div class="pg right"><p class="ink"></p></div><div class="cover"><b>DEATH NOTE</b></div></div>`, {}, 9000);
+  tone(180, .6, 'triangle', .06, 120);
+  await wait(900);
+  const ink = book.querySelector('.ink');
+  for (const ch of name){ ink.textContent += ch; noise(.08, 3500, 2, .9, 'bandpass'); await wait(170); }
+  await wait(500);
+  for (let i = 0; i < 2; i++){ tone(55, .25, 'sine', .5, 40); await wait(240); tone(48, .25, 'sine', .4, 36); await wait(520); }
+  book.classList.add('out');
+  tgt?.classList.add('tremble');
+  banner('心臓麻痺……', 'small', above(sq, 1.2));
+  await wait(700);
+  tgt?.classList.remove('tremble');
+  await tgt?.querySelector('.pc')?.animate([{rotate: '0deg', translate: '0 0', filter: 'none', opacity: 1}, {rotate: '80deg', translate: '14% 24%', filter: 'grayscale(1) brightness(.45)', opacity: .35}], {duration: 750, easing: 'cubic-bezier(.5,0,.8,.4)', fill: 'forwards'}).finished;
+  await wait(250);
+  tgt?.remove();
+  dark.classList.add('out');
+  await wait(300);
+  S.postFx = () => { for (const g of document.querySelectorAll('.grave')) g.animate([{scale: .3, opacity: 0}, {scale: 1.25, opacity: 1, offset: .6}, {scale: 1}], {duration: 700}); };
+}
+/* ---------- Galaxy Impact v3: crush the nearest enemy in the file, blow the rest off the board into their hand ---------- */
+async function fxGalaxy2(from, crush, blown, side){
+  const b = cellCenter(crush); if (!b) return;
+  document.querySelectorAll(`.cell[data-sq="${from}"] > *`).forEach(e => e.style.visibility = 'hidden');
+  const dark = fx('fx-dark', '', {}, 12000);
+  const tgt = cloneOf(crush), tgtHtml = tgt?.innerHTML || '';
+  const flyers = blown.map(q => [q, cloneOf(q)]);
+  await cutin('impact');
+  fx('fx-converge', '', {left: b.x + 'px', top: b.y + 'px'}, 750);
+  tgt?.classList.add('tremble');
+  SFX.crackle();
+  for (let k = 0; k < 14; k++) setTimeout(() => redBolt({x: b.x + (Math.random() - .5) * 150, y: b.y + (Math.random() - .5) * 120}, 90 + Math.random() * 100), k * 80);
+  await wait(1100);
+  const fist = fx('fx-fist', FIST, {left: b.x + 'px', top: (b.y + b.h * .4) + 'px'}, 900);
+  await wait(290);
+  if (tgt){ tgt.classList.remove('tremble'); tgt.insertAdjacentHTML('beforeend', PIECE_CRACK); }
+  noise(.15, 3000, 1, 2, 'highpass');
+  await wait(420);
+  SFX.boom(); fist.classList.add('gone'); tgt?.remove();
+  shatter(crush, tgtHtml);
+  fx('fx-flash', '', {}, 520); fx('fx-shock', '', {left: b.x + 'px', top: b.y + 'px'}, 650);
+  particles(b); crack(b);
+  banner('ギャラクシーインパクト！！', 'red', {x: b.x, y: Math.max(50, b.y - b.h * 1.4)});
+  const table = document.querySelector('.demo-table') || document.querySelector('.table'); table?.classList.remove('shake'); void table?.offsetWidth; table?.classList.add('shake');
+  if (flyers.length){
+    await wait(500);
+    // the shockwave wind carries the rest out of the board, into the owner's hand
+    const hand = document.querySelector(`.who[data-side="${1 - side}"]`)?.closest('.band')?.querySelector('.hand')?.getBoundingClientRect();
+    noise(1.4, 700, .35, 2.2, 'bandpass'); noise(1.2, 2400, .5, 1, 'bandpass');
+    flyers.forEach(([q, cl], i) => {
+      const c = cellCenter(q); if (!c || !cl) return;
+      const tx = hand ? hand.left + Math.min(hand.width - 30, 30 + i * 50) : c.x + (Math.random() - .5) * 200, ty = hand ? hand.top + hand.height / 2 : -120;
+      const ang = Math.atan2(ty - c.y, tx - c.x), len = Math.hypot(tx - c.x, ty - c.y);
+      for (let w = 0; w < 4; w++) setTimeout(() => fx('fx-wind', '', {left: (c.x + (Math.random() - .5) * 40) + 'px', top: (c.y + (Math.random() - .5) * 30) + 'px', width: len * (.7 + Math.random() * .4) + 'px', rotate: ang + 'rad'}, 900), i * 140 + w * 70);
+      setTimeout(() => cl.animate([{translate: '0 0', rotate: '0deg', scale: 1}, {translate: `${(tx - c.x) * .55}px ${(ty - c.y) * .55 - 60}px`, rotate: '420deg', scale: 1.1, offset: .55}, {translate: `${tx - c.x}px ${ty - c.y}px`, rotate: '720deg', scale: .7, opacity: .9}], {duration: 950, easing: 'cubic-bezier(.3,0,.4,1)', fill: 'forwards'}), i * 140);
+    });
+    banner('吹き飛ばした！', 'blue small', {x: b.x, y: b.y + b.h * 1.2});
+    await wait(950 + flyers.length * 140);
+  } else await wait(900);
+  flyers.forEach(([, cl]) => cl?.remove());
+  dark.classList.add('out');
+  await wait(350);
+  S.postFx = () => {
+    document.querySelector(`.cell[data-sq="${from}"] .pc`)?.animate([{scale: .3, opacity: 0}, {scale: 1.25, opacity: 1, offset: .6}, {scale: 1}], {duration: 600});
+    const h = document.querySelector(`.who[data-side="${1 - side}"]`)?.closest('.band')?.querySelector('.hand');
+    h?.animate([{filter: 'brightness(2.2) drop-shadow(0 0 10px #9be7ff)'}, {filter: 'none'}], {duration: 900});
+  };
 }
 
 /* ---------- Zaoriku: a retro RPG message window, then a golden pillar raises the king as a ghost ---------- */
@@ -2998,7 +3127,9 @@ function runCommand(raw){
     if (S.view === 'game' && !S.local){ S.cmdSending = null; syncCmd(); }
     return false;
   };
-  if (c === 'arigatohijirisan'){
+  if (c === 'card' || c === 'cards'){
+    S.modal = 'rules';
+  } else if (c === 'arigatohijirisan'){
     S.secretShown = !S.secretShown; lsSet('secretcmd', S.secretShown);
     if (S.secretShown && !S.cmdList){ S.cmdList = true; lsSet('cmdlist', true); }
   } else if (c === 'command' || c === 'commands'){
@@ -3107,7 +3238,7 @@ document.addEventListener('click', e => {
     case 'copy-link': copyText(inviteUrl(S.gameId), '招待リンクをコピーしました'); break;
     case 'sound': S.sound = !S.sound; lsSet('sound', S.sound); render(); break;
     case 'undo': S.localMoves = S.localMoves.slice(0, -1); S.localStamps = S.localStamps.slice(0, -1); S.viewPly = null; S.sel = null; S.itemPick = null; saveLocal(); render(); playNew(); break;
-    case 'reset': S.localMoves = []; S.localStamps = []; S.localStart = Date.now(); S.localSeed = (Math.random() * 2**32) >>> 0; S.viewPly = null; S.sel = null; S.itemPick = null; S.animSeen = null; saveLocal(); render(); playNew(); break;
+    case 'reset': S.localRv = 3; S.localMoves = []; S.localStamps = []; S.localStart = Date.now(); S.localSeed = (Math.random() * 2**32) >>> 0; S.viewPly = null; S.sel = null; S.itemPick = null; S.animSeen = null; saveLocal(); render(); playNew(); break;
   }
 });
 window.addEventListener('hashchange', () => {
