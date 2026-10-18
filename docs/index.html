@@ -335,6 +335,25 @@ button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px so
 @keyframes wburst{from{scale:.2 .2;opacity:1}50%{scale:1 1.3;opacity:.9}to{scale:1.3 1.8;opacity:0}}
 .fx-banner.white{color:#fff;-webkit-text-stroke-color:#3b5a85}
 
+/* death gate */
+.pc.shimon{filter:sepia(1) hue-rotate(-50deg) saturate(6) brightness(.55) drop-shadow(0 0 8px #ff2a55);z-index:3}
+.aura.wine{position:relative;width:160%;height:190%;align-self:end;justify-self:center;margin-bottom:-8%;filter:drop-shadow(0 0 6px rgba(255,40,80,.8))}
+.aura.wine b{position:absolute;bottom:2%;width:38%;height:78%;border-radius:50% 50% 45% 45% / 75% 75% 25% 25%;transform-origin:50% 100%;
+  background:radial-gradient(ellipse at 50% 85%,#ff8aa3,#c2163f 40%,rgba(90,0,24,.7) 62%,transparent 72%);animation:tongue .4s ease-in-out infinite alternate}
+.aura.wine b:nth-child(1){left:4%;height:60%;rotate:-14deg;animation-delay:-.1s}
+.aura.wine b:nth-child(2){left:20%;height:82%;rotate:-6deg;animation-delay:-.3s}
+.aura.wine b:nth-child(3){left:31%;height:98%;animation-delay:-.2s}
+.aura.wine b:nth-child(4){left:42%;height:82%;rotate:6deg;animation-delay:-.35s}
+.aura.wine b:nth-child(5){left:58%;height:60%;rotate:14deg;animation-delay:-.05s}
+.fx-dark.wine{background:radial-gradient(circle at 50% 45%,rgba(70,0,20,.35),rgba(15,0,5,.85))}
+.fx-clone.shimonclone .pc{filter:sepia(1) hue-rotate(-50deg) saturate(6) brightness(.55) drop-shadow(0 0 12px #ff2a55)}
+.fx-clone.char .pc{animation:char .65s ease-in forwards}
+@keyframes char{to{filter:brightness(.04) contrast(2) drop-shadow(0 0 6px #ff5a2a);scale:.92}}
+.fx-trail{z-index:84;height:22px;margin-top:-11px;transform-origin:0 50%;border-radius:11px;
+  background:linear-gradient(90deg,rgba(90,0,24,0),#7a0c26 25%,#e0244e 70%,#ffd6de);box-shadow:0 0 24px 8px rgba(224,36,78,.7);animation:trail 1.9s ease-out forwards}
+@keyframes trail{0%{scale:0 1}18%{scale:1 1;opacity:1}60%{opacity:.8}100%{scale:1 .2;opacity:0}}
+.fx-shock.wine{border-color:rgba(224,36,78,.9);box-shadow:0 0 40px 10px rgba(224,36,78,.6)}
+
 /* galaxy impact */
 .fx-cutin{left:0;right:0;height:250px;transform:translateY(-50%) skewY(-6deg);z-index:89;overflow:hidden;background:#0b0503;
   border-top:7px solid #fff;border-bottom:7px solid #fff;box-shadow:0 0 0 5px #E8401C,0 24px 60px rgba(0,0,0,.65);animation:cutin 1.6s cubic-bezier(.2,.9,.2,1) forwards}
@@ -655,7 +674,7 @@ const Shogi = (() => {
 // Actions: USI moves, "@item[:sq]" card use, "~a:sq" / "~d" / "~c" Bungee Gum attach / detach / contract.
 const ItemShogi = (() => {
   const B = Shogi;
-  const ITEMS = ['dual','star','giga','mush','volt','ge','hatsu','gum','impact'];
+  const ITEMS = ['dual','star','giga','mush','volt','ge','hatsu','gum','impact','shimon'];
   const INFO = {
     dual:   {name:'二刀流', short:'二刀流', need:'own', desc:'自分の駒1枚から手が生え、剣を2本装備する。このターン、その駒を2回続けて動かせる（持ち駒は打てない）。'},
     star:   {name:'スター', short:'スター', need:'own', desc:'自分の駒1枚が、このターンだけ全方向に1マス動けるようになる。'},
@@ -666,7 +685,9 @@ const ItemShogi = (() => {
     hatsu:  {name:'発', short:'発', need:'own', desc:'自分の駒1枚が白いオーラを纏う。纏った駒は相手のアイテム攻撃を受けない（10万ボルトの対象にならない、ギガスラッシュの巻き添えにならない、拳骨衝突でも粉砕されず普通に取られるだけ）。'},
     gum:    {name:'バンジーガム', short:'バンジーガム', need:'own', desc:'自分の駒1枚がガムのオーラを纏い、バンジーガムを操れるようになる。ガムを2か所（駒かマス）につけて縮めると、2つ目につけた駒が1つ目の方へ引き寄せられる。縮めるとその番の1手になる。つける・はずすは自由。'},
     impact: {name:'拳骨衝突（ギャラクシーインパクト）', short:'拳骨衝突', need:'own', desc:'理外の覇気が盤面を穿つ！ 自分の駒1枚に覇気を纏わせる。その駒が次に相手の駒を取ると、その駒を粉砕する。粉砕された駒は持ち駒にならず墓地へ送られ、二度と使えない（きのこ・仕込みカードも貫通）。'},
+    shimon: {name:'八門遁甲の陣（死門）', short:'死門', need:'own', desc:'己の掟を貫き通す奥義。自分の銀・金・桂・香・飛・角（成っていない駒）1枚が死門を開き、ワインレッドに染まる。このターン、その駒は駒を飛び越えて盤上のどのマスへも一気に移動できる。進んだ道と移動先の駒は敵味方問わずすべて炭化して墓地へ。最後に自分の駒も炭化して消える（玉は炭化せず、玉のマスへは移動できない）。'},
   };
+  const SHIMON_OK = ['S','G','N','L','R','B'];
   const HAND_MAX = 3, BOX_MAX = 2;
   const KING_D = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
 
@@ -723,8 +744,22 @@ const ItemShogi = (() => {
     if (kp.mush || floating(kp, T2)) return false;
     return attacked(board, k, 1-s, T2);
   }
+  // squares crossed on the straight dash from `from` to `to` (both ends excluded)
+  function linePath(from, to){
+    const r1 = (from/9)|0, c1 = from%9, r2 = (to/9)|0, c2 = to%9, n = Math.max(Math.abs(r2 - r1), Math.abs(c2 - c1)), out = [];
+    for (let k = 1; k < n; k++){ const q = Math.round(r1 + (r2 - r1) * k / n) * 9 + Math.round(c1 + (c2 - c1) * k / n); if (q !== from && q !== to && !out.includes(q)) out.push(q); }
+    return out;
+  }
+  // after a Death Gate dash: every non-king piece on the path and the target square burns, then the dasher burns too
+  function shimonBoard(board, from, to){
+    const b = board.slice();
+    for (const q of [...linePath(from, to), to]) if (b[q] && b[q].t !== 'K') b[q] = null;
+    b[from] = null;
+    return b;
+  }
   // board after a move, as the mover can foresee it (hidden traps are unknown to them)
   function simBoard(st, mv){
+    if (mv.shimon) return shimonBoard(st.board, mv.from, mv.to);
     const b = st.board.slice(), s = st.turn;
     if (mv.drop){ b[mv.to] = {t:mv.drop, s, p:false}; return b; }
     const pc = b[mv.from], tg = b[mv.to];
@@ -739,12 +774,20 @@ const ItemShogi = (() => {
     for (let i=0;i<81;i++){
       const pc = b[i]; if (!pc || pc.s !== s || pc.frozen === T) continue;
       if (st.dual && pc.dual !== T) continue;
+      if (st.shimon && pc.shimon !== T) continue;
+      if (pc.shimon === T){
+        for (let t=0;t<81;t++){
+          if (t === i || (b[t] && b[t].t === 'K')) continue;
+          if (ok({from:i, to:t, promote:false, shimon:true}) && firstOnly) return out;
+        }
+        continue;
+      }
       for (const t of targetsOf(b, i, T)){
         if (B.canPromote(pc, i, t) && ok({from:i, to:t, promote:true}) && firstOnly) return out;
         if (!B.mustPromote(pc, t) && ok({from:i, to:t, promote:false}) && firstOnly) return out;
       }
     }
-    if (!st.dual){
+    if (!st.dual && !st.shimon){
       const hand = st.hands[s];
       let pawnFiles = null;
       for (const k of B.KINDS){
@@ -780,6 +823,7 @@ const ItemShogi = (() => {
         if (item === 'hatsu' && p.aura) continue;
         if (item === 'gum' && p.gum) continue;
         if (item === 'dual' && !movers.has(i)) continue;
+        if (item === 'shimon' && (!SHIMON_OK.includes(p.t) || p.p || p.frozen === st.T)) continue;
         out.push(i);
       }
       if (need === 'enemy' && p.s !== s && !(item === 'volt' && p.aura)) out.push(i);
@@ -832,7 +876,7 @@ const ItemShogi = (() => {
   }
 
   function endTurn(n){
-    n.turn = 1 - n.turn; n.T++; n.moved = 0; n.cardUsed = false; n.dual = false;
+    n.turn = 1 - n.turn; n.T++; n.moved = 0; n.cardUsed = false; n.dual = false; n.shimon = false;
     if (n.T % 2 === 0) spawnBox(n);
   }
   function finish(n){
@@ -900,6 +944,7 @@ const ItemShogi = (() => {
         case 'hatsu': p.aura = true; break;
         case 'gum': p.gum = true; break;
         case 'impact': p.impact = true; break;
+        case 'shimon': n.shimon = true; p.shimon = T; break;
       }
       if (!legal(n, true).length) return null; // never let a card leave you without a move
       const where = sq >= 0 ? `（${B.sqName(sq)}${pname(st.board[sq])}）` : '';
@@ -909,6 +954,16 @@ const ItemShogi = (() => {
     const mv = legal(st).find(m => B.toUsi(m) === a);
     if (!mv) return null;
     const n = clone(st), b = n.board, ev = [];
+    if (mv.shimon){
+      const pc = b[mv.from], path = linePath(mv.from, mv.to), burnt = [];
+      for (const q of [...path, mv.to]){ const x = b[q]; if (x && x.t !== 'K'){ n.crushed[1 - x.s].push(x.t); b[q] = null; burnt.push(q); } }
+      b[mv.from] = null; n.crushed[1 - s].push(pc.t);
+      ev.push({type:'shimondash', from:mv.from, to:mv.to, path, burnt, pre:true});
+      const text = `死門（${B.sqName(mv.from)}${pname(pc)}→${B.sqName(mv.to)}）${burnt.length + 1}枚が炭化→墓地へ`;
+      n.ply++; n.lastTo = mv.to; n.lastFrom = mv.from; n.moved++;
+      endTurn(n); finish(n);
+      return {st:n, ev, text, pub:text, item:false};
+    }
     let text = B.moveName(st, mv, st.lastTo), arrived = true;
     if (mv.drop){ b[mv.to] = {t:mv.drop, s, p:false, id:n.nid++}; n.hands[s][mv.drop]--; }
     else {
@@ -1027,6 +1082,7 @@ const ICON = {
   hatsu: `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 2 C27 10 34 9 33 2 C42 10 44 22 40 32 C44 30 45 26 45 24 C48 36 40 46 24 46 C8 46 0 36 3 24 C3 26 4 30 8 32 C4 22 6 10 15 2 C14 9 21 10 24 2 Z" fill="#F4F8FF" stroke="#8FA7C9" stroke-width="2" stroke-linejoin="round"/><path d="M24 14 C26 20 31 22 30 30 C33 28 34 26 34 24 C37 34 31 41 24 41 C17 41 11 34 14 24 C14 26 15 28 18 30 C17 22 22 20 24 14 Z" fill="#fff" opacity=".9"/><text x="24" y="37" font-size="15" font-weight="900" text-anchor="middle" fill="#4A6A94" font-family="Zen Maru Gothic, sans-serif">発</text></svg>`,
   gum: `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M30 22 C37 27 40 34 45 43" stroke="#FF7EC2" stroke-width="4.5" fill="none" stroke-linecap="round"/><path d="M9 30 C3 21 12 9 22 13 C29 5 43 10 38 22 C46 29 37 42 27 36 C21 44 7 40 9 30 Z" fill="#FF7EC2" stroke="#A3226B" stroke-width="2" stroke-linejoin="round"/><ellipse cx="17" cy="19" rx="4" ry="2.4" fill="#FFD0EA" transform="rotate(-25 17 19)"/></svg>`,
   impact: `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M4 10 L11 15 L7 18 L14 24" stroke="#E0201A" stroke-width="2.4" fill="none" stroke-linejoin="round"/><path d="M44 8 L37 14 L41 17 L34 23" stroke="#E0201A" stroke-width="2.4" fill="none" stroke-linejoin="round"/><rect x="11" y="12" width="27" height="20" rx="7" fill="#1b1b1b" stroke="#E0201A" stroke-width="2.2"/><path d="M18 12.5 v9 M24.5 12.5 v9 M31 12.5 v9" stroke="#E0201A" stroke-width="1.6"/><path d="M11 25 h11 a4.5 4.5 0 0 1 0 9 h-6" fill="#1b1b1b" stroke="#E0201A" stroke-width="2.2" stroke-linejoin="round"/><rect x="15" y="32" width="19" height="11" rx="3" fill="#1b1b1b" stroke="#E0201A" stroke-width="2.2"/></svg>`,
+  shimon: `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 2 C29 10 37 9 36 2 C45 11 46 24 41 33 C45 31 46 27 46 25 C48 38 38 46 24 46 C10 46 0 38 2 25 C2 27 3 31 7 33 C2 24 3 11 12 2 C11 9 19 10 24 2 Z" fill="#7A0C26" stroke="#2a0008" stroke-width="2" stroke-linejoin="round"/><path d="M24 13 C26 19 32 21 31 29 C34 27 35 25 35 23 C38 33 32 41 24 41 C16 41 10 33 13 23 C13 25 14 27 17 29 C16 21 22 19 24 13 Z" fill="#C2163F" opacity=".9"/><text x="24" y="37" font-size="17" font-weight="900" text-anchor="middle" fill="#fff" stroke="#2a0008" stroke-width="2.5" paint-order="stroke" font-family="Zen Maru Gothic, sans-serif">死</text></svg>`,
 };
 // Arms and swords around a piece. Coordinates: the piece fills x 50-150, y 16-124 of a 200x140 box.
 const ARM = (x1, y1, cx, cy, x2, y2) => `<path d="M${x1} ${y1} Q${cx} ${cy} ${x2} ${y2}" stroke="#3a2a1a" stroke-width="19" fill="none" stroke-linecap="round"/><path d="M${x1} ${y1} Q${cx} ${cy} ${x2} ${y2}" stroke="#FFE1BD" stroke-width="12" fill="none" stroke-linecap="round"/><circle cx="${x2}" cy="${y2}" r="12" fill="#FFE1BD" stroke="#3a2a1a" stroke-width="3.5"/>`;
@@ -1514,6 +1570,7 @@ function pieceHtml(pc, rot, st){
     if (pc.float != null && pc.float >= st.T) cls.push('float');
     if (pc.dual === st.T && st.dual) deco += DECO.dual;
     if (pc.giga) deco += DECO.giga;
+    if (pc.shimon === st.T && st.shimon) cls.push('shimon');
   }
   return `<div class="${cls.join(' ')}">${ch}${deco}</div>`;
 }
@@ -1726,6 +1783,7 @@ function renderGame(){
         if (pc.aura) inner += '<i class="aura ssj"><b></b><b></b><b></b><b></b><b></b><u></u><u></u><u></u></i>';
         if (pc.gum) inner += '<i class="aura nen"></i>';
         if (pc.impact) inner += '<i class="aura haki"></i>';
+        if (pc.shimon === pos.T && pos.shimon) inner += '<i class="aura wine"><b></b><b></b><b></b><b></b><b></b></i>';
       }
       inner += pieceHtml(pc, pc.s !== bottom, item ? pos : null);
       if (item){
@@ -1813,6 +1871,7 @@ function renderGame(){
   else if (inf.mySide === latest.turn){ big = 'あなたの番です'; small = `あなたは${MARK[inf.mySide]}${SIDE[inf.mySide]}`; }
   else { big = '相手の考慮中…'; small = `あなたは${MARK[inf.mySide]}${SIDE[inf.mySide]}`; }
   if (item && !inf.result && latest.dual) small = `二刀流：${MARK[latest.turn]}あと${2 - latest.moved}手（持ち駒は打てません）`;
+  if (item && !inf.result && latest.shimon) small = '死門：開いた駒をどのマスへでも動かせます。進んだ道の駒はすべて炭化します';
   if (S.pending) small = '送信中…';
   if (S.netDown) small = '通信が切れています。自動で再接続します…';
   if (S.viewPly !== null) small = `${ply}番目の局面を表示中 — 「最新」で戻ります`;
@@ -1924,7 +1983,6 @@ function fxSlash(sqs){
   const cs = sqs.map(cellCenter).filter(Boolean); if (!cs.length) return;
   const x0 = Math.min(...cs.map(c => c.x)) - cs[0].w * .7, x1 = Math.max(...cs.map(c => c.x)) + cs[0].w * .7, y = cs[0].y;
   fx('fx-slash', '', {left: x0 + 'px', top: (y - 8) + 'px', width: (x1 - x0) + 'px', rotate: '-6deg'}, 650);
-  banner('ギガスラッシュ！', 'blue', {x: (x0 + x1) / 2, y: Math.max(40, y - cs[0].h * 1.1)});
 }
 function fxGold(sq){
   const c = cellCenter(sq); if (!c) return;
@@ -1947,13 +2005,14 @@ function fxRoulette(item, hidden){
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const above = (sq, k = 1.1) => { const c = cellCenter(sq); return c && {x: c.x, y: Math.max(40, c.y - c.h * k)}; };
 function growDeco(sq, kind){ document.querySelector(`.cell[data-sq="${sq}"] .deco.${kind}`)?.classList.add('grow'); }
-const CUT_FOR = {dual:'dual', star:'star', giga:'giga', mush:'mush', volt:'volt', hatsu:'hatsu', gum:'gum', geon:'ge'};
+const CUT_FOR = {shimon:'shimon', dual:'dual', star:'star', giga:'giga', mush:'mush', volt:'volt', hatsu:'hatsu', gum:'gum', geon:'ge'};
 async function playEv(ev){
   if (CUT_FOR[ev.type]) await cutin(CUT_FOR[ev.type]);
   switch (ev.type){
     case 'dual': growDeco(ev.sq, 'dual'); fxSwords(); SFX.slash(); break;
     case 'star': fxStar(ev.sq); SFX.chime(); break;
-    case 'giga': growDeco(ev.sq, 'giga'); banner('ギガスラッシュ 構え', 'blue', above(ev.sq)); SFX.slash(); break;
+    case 'giga': growDeco(ev.sq, 'giga'); SFX.slash(); break;
+    case 'shimon': SFX.charge(); break;
     case 'mush': ring(ev.sq, '#E53935'); banner('パワーアップ！', '', above(ev.sq, .9)); SFX.boing(); break;
     case 'volt': fxVolt(ev.sq); SFX.zap(); break;
     case 'ge': if (canSee(ev.side)){ ring(ev.sq, '#F7C948'); banner('カードを仕込んだ', 'gold small'); } else banner('相手がカードを伏せた…', 'small'); SFX.chime(); break;
@@ -1974,6 +2033,7 @@ function playPre(ev){
   if (ev.type === 'gi') return fxGalaxy(ev.from, ev.to);
   if (ev.type === 'gigaspin') return fxGigaSpin(ev.from, ev.sqs);
   if (ev.type === 'gumpull') return fxGumPull(ev.from, ev.to, ev.anchor);
+  if (ev.type === 'shimondash') return fxShimon(ev.from, ev.to, ev.burnt);
   return Promise.resolve();
 }
 const animQ = [];
@@ -2039,10 +2099,21 @@ function fxHakiCharge(sq){
   fx('fx-converge', '', {left: c.x + 'px', top: c.y + 'px'}, 750);
   for (let k = 0; k < 4; k++) setTimeout(() => redBolt(c, 70), k * 110);
 }
-function particles(c){
+function particles(c, mode){
   const cv = document.createElement('canvas'); cv.className = 'fx fx-canvas';
   cv.width = innerWidth; cv.height = innerHeight; document.body.appendChild(cv);
   const ctx = cv.getContext('2d'), ps = [];
+  if (mode === 'ash'){
+    for (let i = 0; i < 60; i++){ const a = Math.random() * Math.PI * 2, v = .5 + Math.random() * 2.5; ps.push({x: c.x + (Math.random() - .5) * 30, y: c.y + (Math.random() - .5) * 30, vx: Math.cos(a) * v, vy: -Math.random() * 2.5, s: 1.5 + Math.random() * 3.5, ash: true, col: ['#1b1b1b', '#3a3a3a', '#6b6b6b', '#9a9a9a', '#ff5a2a'][i % 5]}); }
+    const t1 = performance.now();
+    (function step(t){
+      const k = (t - t1) / 1400;
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      for (const p of ps){ p.x += p.vx + Math.sin((t + p.s * 99) / 200) * .4; p.y += p.vy; p.vy -= .03; ctx.globalAlpha = Math.max(0, 1 - k); ctx.fillStyle = p.col; ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, 7); ctx.fill(); }
+      if (k < 1) requestAnimationFrame(step); else cv.remove();
+    })(t1);
+    return;
+  }
   for (let i = 0; i < 46; i++){ const a = Math.random() * Math.PI * 2, v = 4 + Math.random() * 11; ps.push({x: c.x, y: c.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 4, r: Math.random() * 6, vr: (Math.random() - .5) * .5, w: 4 + Math.random() * 9, h: 2 + Math.random() * 3, wood: true, col: ['#E79A3A', '#C9792A', '#FFF4D6', '#8a5a2a'][i % 4]}); }
   for (let i = 0; i < 70; i++){ const a = Math.random() * Math.PI * 2, v = 2 + Math.random() * 9; ps.push({x: c.x, y: c.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, s: 1.5 + Math.random() * 3, col: ['#fff', '#FFE58A', '#FF6A4D', '#FFD0A0'][i % 4]}); }
   const t0 = performance.now();
@@ -2080,6 +2151,7 @@ const CUTIN = {
   ge:     {small:'スタンド能力', big:'ゴールド・エクスペリエンス', bg:['#261a00','#0c0800'], burst:['#fffbe0','#f7d35a','#c9921a'], bolt:'#ffe08a', line:'rgba(255,220,120,.45)', stroke:'#4d3300'},
   hatsu:  {small:'念能力', big:'発', bg:['#0e1830','#04070e'], burst:['#ffffff','#e3efff','#8fb4ff'], bolt:'#cfe2ff', line:'rgba(220,235,255,.5)', stroke:'#1d3a6b'},
   gum:    {small:'伸縮自在の愛', big:'バンジーガム', bg:['#2e0b22','#0f030b'], burst:['#ffffff','#ffc2e2','#ff5fb0'], bolt:'#ff7ec2', line:'rgba(255,170,215,.45)', stroke:'#6b0f45'},
+  shimon: {small:'八門遁甲の陣', big:'死門', bg:['#2a0410','#0a0004'], burst:['#ffd6de','#e0244e','#7a0c26'], bolt:'#ff3b5c', line:'rgba(255,90,120,.4)', stroke:'#3a0010'},
   impact: {small:'拳骨衝突', big:'ギャラクシーインパクト', bg:['#2b1508','#0b0503'], burst:['#FFFFF0','#FFE64F','#FF9A1F'], bolt:'#F0461E', line:'rgba(255,180,70,.35)', stroke:'#8a0d00', fist:true},
 };
 // Manga-style cut-in art drawn on a canvas. A viewer may swap in their own picture per item; it stays in their browser only.
@@ -2190,12 +2262,40 @@ async function fxGalaxy(from, to){
     for (const g of document.querySelectorAll('.grave')) g.animate([{scale: .3, opacity: 0}, {scale: 1.25, opacity: 1, offset: .6}, {scale: 1}], {duration: 700, easing: 'ease-out'});
   };
 }
+// Death Gate: the piece turns wine red, dashes in a straight line, everything it passes burns, then it burns too
+async function fxShimon(from, to, burnt){
+  const a = cellCenter(from), b = cellCenter(to); if (!a || !b) return;
+  const dark = fx('fx-dark wine', '', {}, 6500);
+  const atk = cloneOf(from);
+  document.querySelectorAll(`.cell[data-sq="${from}"] > *`).forEach(e => e.style.visibility = 'hidden');
+  atk?.classList.add('shimonclone');
+  const victims = (burnt || []).filter(q => q !== from).map(q => [q, cloneOf(q)]);
+  banner('死門・開！', 'red', {x: a.x, y: Math.max(40, a.y - a.h * 1.3)});
+  SFX.charge();
+  await wait(800);
+  const len = Math.hypot(b.x - a.x, b.y - a.y), ang = Math.atan2(b.y - a.y, b.x - a.x);
+  fx('fx-trail', '', {left: a.x + 'px', top: a.y + 'px', width: len + 'px', rotate: ang + 'rad'}, 1900);
+  SFX.slash(); noise(.5, 600, .5, 2.2, 'lowpass');
+  await atk?.animate([{translate: '0 0'}, {translate: `${b.x - a.x}px ${b.y - a.y}px`}], {duration: 360, easing: 'cubic-bezier(.75,0,.25,1)', fill: 'forwards'}).finished;
+  fx('fx-shock wine', '', {left: b.x + 'px', top: b.y + 'px'}, 650);
+  const table = document.querySelector('.demo-table') || document.querySelector('.table'); table?.classList.remove('shake'); void table?.offsetWidth; table?.classList.add('shake');
+  for (const [q, cl] of victims){ cl?.classList.add('char'); setTimeout(() => { const c = cellCenter(q); if (c) particles(c, 'ash'); cl?.remove(); }, 650); }
+  await wait(1000);
+  banner('炭化……', 'small', {x: b.x, y: Math.max(40, b.y - b.h * 1.2)});
+  atk?.classList.add('char');
+  await wait(700);
+  particles(b, 'ash'); atk?.remove();
+  await wait(900);
+  dark.classList.add('out');
+  await wait(300);
+}
 async function fxGigaSpin(from, sqs){
   const pc = document.querySelector(`.cell[data-sq="${from}"] .pc`);
   SFX.slash();
   pc?.animate([{rotate: '0deg'}, {rotate: '360deg'}], {duration: 520, easing: 'cubic-bezier(.3,0,.2,1)'});
   await wait(430);
   fxSlash(sqs);
+  banner('ギガスラッシュを放った！', 'blue');
   for (const q of sqs) document.querySelector(`.cell[data-sq="${q}"] .pc`)?.classList.add('hit');
   for (const q of sqs){ const c = cellCenter(q); if (c) fx('fx-ring', '', {left: c.x + 'px', top: c.y + 'px', color: '#7FE3FF'}, 650); }
   await wait(560);
@@ -2237,6 +2337,7 @@ function demoCells(pcs, st, gum){
       if (pc.aura) inner += '<i class="aura ssj"><b></b><b></b><b></b><b></b><b></b><u></u><u></u><u></u></i>';
       if (pc.gum) inner += '<i class="aura nen"></i>';
       if (pc.impact) inner += '<i class="aura haki"></i>';
+      if (pc.shimon === 0 && st.shimon) inner += '<i class="aura wine"><b></b><b></b><b></b><b></b><b></b></i>';
       inner += pieceHtml(pc, pc.s === 1, st);
       if (pc.mush) inner += `<span class="mini-b tl">${ICON.mush}</span>`;
       if (pc.frozen != null) inner += `<span class="mini-b tr">${ICON.volt}</span>`;
@@ -2292,7 +2393,7 @@ async function demoRun(item, tok){
       await move(12, 11); await pause(200); await move(11, 6); banner('全方向に1マス！', 'gold small'); await pause(900); break;
     case 'giga':
       pcs = {7: own('G'), 1: en('P'), 2: en('S'), 3: en('N')}; draw(); await pause(500);
-      await cutin('giga'); pcs[7].giga = true; draw(); growDeco('d7', 'giga'); banner('ギガスラッシュ 構え', 'blue'); SFX.slash(); await pause(1400);
+      await cutin('giga'); pcs[7].giga = true; draw(); growDeco('d7', 'giga'); SFX.slash(); await pause(1400);
       await fxGigaSpin('d7', ['d2', 'd1', 'd3']); delete pcs[1]; delete pcs[3]; pcs[7].giga = false; await move(7, 2); await pause(700); break;
     case 'mush':
       pcs = {7: own('S'), 2: en('R')}; draw(); await pause(500);
@@ -2315,6 +2416,10 @@ async function demoRun(item, tok){
       gum = [12]; draw(); ring('d12', '#FF6FB5'); SFX.gum(); await pause(700);
       gum = [12, 4]; draw(); ring('d4', '#FF6FB5'); SFX.gum(); await pause(800);
       await fxGumPull('d4', 'd12', 'd12'); gum = null; pcs[12] = pcs[4]; delete pcs[4]; draw(); await pause(900); break;
+    case 'shimon':
+      pcs = {12: own('S'), 7: en('P'), 2: en('R'), 11: own('G')}; draw(); await pause(500);
+      await cutin('shimon'); pcs[12].shimon = 0; st.shimon = true; draw(); SFX.charge(); await pause(1300);
+      await fxShimon('d12', 'd2', ['d7', 'd2']); st.shimon = false; delete pcs[12]; delete pcs[7]; delete pcs[2]; draw(); await pause(800); break;
     case 'impact':
       pcs = {7: own('G'), 2: en('R')}; draw(); await pause(500);
       pcs[7].impact = true; draw(); fxHakiCharge('d7'); banner('覇気を纏った', 'red small'); SFX.charge(); await pause(1400);
