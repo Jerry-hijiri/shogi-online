@@ -753,6 +753,8 @@ const ItemShogi = (() => {
   };
   const SHIMON_OK = ['S','G','N','L','R','B'];
   const HAND_MAX = 3, BOX_MAX = 2;
+  // games created before rule version 2 still use the old mushroom (bounces once, king safe while big)
+  let MUSH_GUARD = false;
   const KING_D = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
 
   function rand(st){
@@ -772,7 +774,7 @@ const ItemShogi = (() => {
     p.board.forEach((pc, i) => { if (pc) pc.id = i + 1; });
     const st = {board:p.board, hands:p.hands, turn:0, T:0, moved:0, cardUsed:false, dual:false, room:null, nid:100,
       cards:[[],[]], boxes:[], gum:[[],[]], crushed:[[],[]], rng:(seed >>> 0) || 1, ply:0, lastTo:-1, lastFrom:-1, result:null,
-      boxesOn: !opts?.boxesOff, noFree: false};
+      boxesOn: !opts?.boxesOff, noFree: false, mushGuard: !!opts?.legacyMush};
     spawnBox(st); spawnBox(st);
     return st;
   }
@@ -806,7 +808,7 @@ const ItemShogi = (() => {
   function inDanger(board, s, T2){
     const k = B.kingSq(board, s); if (k < 0) return false;
     const kp = board[k];
-    if (floating(kp, T2)) return false;
+    if ((MUSH_GUARD && kp.mush) || floating(kp, T2)) return false;
     return attacked(board, k, 1-s, T2);
   }
   // squares crossed on the straight dash from `from` to `to` (both ends excluded)
@@ -832,10 +834,12 @@ const ItemShogi = (() => {
     const b = st.board.slice(), s = st.turn;
     if (mv.drop){ b[mv.to] = {t:mv.drop, s, p:false}; return b; }
     const pc = b[mv.from], tg = b[mv.to];
+    if (MUSH_GUARD && tg && tg.mush && !pc.impact) return b;
     b[mv.to] = mv.promote ? {...pc, p:true} : pc; b[mv.from] = null;
     return b;
   }
   function legal(st, firstOnly=false){
+    MUSH_GUARD = !!st.mushGuard;
     if (st.result) return [];
     const s = st.turn, b = st.board, T = st.T, out = [];
     const ok = mv => { if (inDanger(simBoard(st, mv), s, T+1)) return false; out.push(mv); return true; };
@@ -999,6 +1003,7 @@ const ItemShogi = (() => {
 
   // Apply one action string. Returns null when the action is not allowed here.
   function act(st, a, free){
+    MUSH_GUARD = !!st.mushGuard;
     const s = st.turn, T = st.T;
     if (st.result) return null;
     if (a === '#D'){
@@ -1097,7 +1102,10 @@ const ItemShogi = (() => {
     if (mv.drop){ b[mv.to] = {t:mv.drop, s, p:false, id:n.nid++}; n.hands[s][mv.drop]--; }
     else {
       const pc = b[mv.from], tg = b[mv.to];
-      if (tg && !pc.impact && tg.trap){
+      if (st.mushGuard && tg && !pc.impact && tg.mush){
+        tg.mush = false; arrived = false;
+        ev.push({type:'bounce', sq:mv.to}); text += '（きのこで弾かれた）';
+      } else if (tg && !pc.impact && tg.trap){
         tg.trap = false; tg.float = T + 2; arrived = false;
         ev.push({type:'geon', sq:mv.to}); text += '（ゴールド・エクスペリエンス発動）';
       } else {
@@ -1119,7 +1127,8 @@ const ItemShogi = (() => {
             const cc = c + dc; if (cc < 0 || cc > 8) continue;
             const q = r*9 + cc, qp = b[q];
             if (!qp || qp.s === s || qp.t === 'K' || qp.aura || floating(qp, T)) continue;
-            if (qp.trap){ qp.trap = false; qp.float = T + 2; ev.push({type:'geon', sq:q}); }
+            if (st.mushGuard && qp.mush){ qp.mush = false; ev.push({type:'bounce', sq:q}); }
+            else if (qp.trap){ qp.trap = false; qp.float = T + 2; ev.push({type:'geon', sq:q}); }
             else { n.hands[s][qp.t]++; b[q] = null; }
             hit.push(q);
           }
@@ -1157,7 +1166,8 @@ const ItemShogi = (() => {
     return {states, entries, events, result: st.result, invalid, pos: st};
   }
 
-  return {ITEMS, INFO, HAND_MAX, init, legal, act, replay, canUse, itemTargets, inDanger, canGum, pullDest, gumSquares, hasGum, gumUserSq, inRoom, swapUsi};
+  return {ITEMS, INFO, HAND_MAX, init, legal, act, replay, canUse, itemTargets, inDanger, canGum, pullDest, gumSquares, hasGum, gumUserSq, inRoom, swapUsi,
+    inDangerSt: st => { MUSH_GUARD = !!st.mushGuard; return inDanger(st.board, st.turn, st.T + 1); }};
 })();
 // ENGINE END
 </script>
@@ -1333,8 +1343,8 @@ function replayFor(mode, moves, seed, free, opts){
     events: r.kifu.map(() => []), result: r.result, invalid: r.invalid};
 }
 function getRep(){
-  const bx = !S.local && !!S.game?.bx, mv = curMoves(), k = curMode() + '|' + curSeed() + '|' + bx + '|' + mv.join(' ');
-  if (S.repKey !== k){ S.rep = replayFor(curMode(), mv, curSeed(), false, {boxesOff: bx}); S.repKey = k; }
+  const bx = !S.local && !!S.game?.bx, lm = !S.local && !!S.game && !S.game.rv, mv = curMoves(), k = curMode() + '|' + curSeed() + '|' + bx + lm + '|' + mv.join(' ');
+  if (S.repKey !== k){ S.rep = replayFor(curMode(), mv, curSeed(), false, {boxesOff: bx, legacyMush: lm}); S.repKey = k; }
   return S.rep;
 }
 function legalMoves(){
@@ -1342,7 +1352,7 @@ function legalMoves(){
   if (S.legalKey !== S.repKey){ S.legal = isItem() ? I.legal(rep.pos) : E.gen(rep.pos); S.legalKey = S.repKey; }
   return S.legal;
 }
-function inCheckAt(st){ return isItem() ? I.inDanger(st.board, st.turn, st.T + 1) : E.inCheck(st, st.turn); }
+function inCheckAt(st){ return isItem() ? I.inDangerSt(st) : E.inCheck(st, st.turn); }
 function checkKingSq(st){ return E.kingSq(st.board, st.turn); }
 function info(){
   const rep = getRep();
@@ -1374,7 +1384,7 @@ async function doAction(a){
   }
   const g = S.game; if (!g) return;
   const moves = [...(g.moves || []), a], stamps = [...(g.stamps || []), Date.now()];
-  const rep = replayFor(g.mode || 'normal', moves, g.seed || 1, false, {boxesOff: !!g.bx});
+  const rep = replayFor(g.mode || 'normal', moves, g.seed || 1, false, {boxesOff: !!g.bx, legacyMush: !g.rv});
   if (rep.invalid){ toast('その操作はできません'); render(); return; }
   if (S.net === 'ntfy'){ Ntfy.send({k:'act', i: moves.length - 1, a, t: stamps[stamps.length - 1], by: S.myId}); return; }
   const patch = {moves, stamps, updatedAt: Date.now(), turn: rep.pos.turn};
@@ -1435,7 +1445,7 @@ function reduceMsgs(list){
       const both = !!(d.g.sente && d.g.gote), t = d.t || d._t * 1000;
       g = {mode: d.g.mode === 'normal' ? 'normal' : 'item', seed: (d.g.seed >>> 0) || 1, sente: d.g.sente || null, gote: d.g.gote || null,
         names: {...(d.g.names || {})}, creator: d.by, status: both ? 'playing' : 'waiting', moves: [], stamps: [], result: null,
-        createdAt: t, startedAt: both ? t : null, updatedAt: t, furigoma: !!d.g.furigoma, bx: d.g.bx ? 1 : 0, cmd: {...(d.g.cmd || {})}};
+        createdAt: t, startedAt: both ? t : null, updatedAt: t, furigoma: !!d.g.furigoma, bx: d.g.bx ? 1 : 0, rv: d.g.rv || 0, cmd: {...(d.g.cmd || {})}};
     }
     if (d.k === 'sync' && d.g && Array.isArray(d.g.moves) && (!sync || d.g.moves.length > sync.moves.length)) sync = d.g;
   }
@@ -1515,8 +1525,8 @@ const Ntfy = {
     const fake = [...this.outbox.values()].map((d, i) => ({id: 'local' + i, time: 9e12, message: JSON.stringify(d)}));
     const g = reduceMsgs([...this.msgs.values(), ...fake]);
     if (g && (g.moves.length >= saved.moves.length || g.status !== 'playing' && saved.status === 'waiting')) return;
-    const {mode, seed, sente, gote, names, status, moves, stamps, createdAt, startedAt, furigoma, bx, cmd} = saved;
-    this.send({k: 'sync', g: {mode, seed, sente, gote, names, status, moves, stamps, createdAt, startedAt, furigoma, bx, cmd}});
+    const {mode, seed, sente, gote, names, status, moves, stamps, createdAt, startedAt, furigoma, bx, rv, cmd} = saved;
+    this.send({k: 'sync', g: {mode, seed, sente, gote, names, status, moves, stamps, createdAt, startedAt, furigoma, bx, rv, cmd}});
   },
 };
 function saveRecent(g){
@@ -1524,8 +1534,8 @@ function saveRecent(g){
   const all = lsGet('games', {});
   const mySide = g.sente === S.myId ? 0 : g.gote === S.myId ? 1 : null;
   if (mySide === null && g.status !== 'waiting') { if (!all[S.gameId]) return; }
-  const {mode, seed, sente, gote, names, status, moves, stamps, createdAt, startedAt, result, furigoma, bx, cmd} = g;
-  all[S.gameId] = {g: {mode, seed, sente, gote, names, status, moves, stamps, createdAt, startedAt, result, furigoma, bx, cmd}, updatedAt: g.updatedAt || Date.now()};
+  const {mode, seed, sente, gote, names, status, moves, stamps, createdAt, startedAt, result, furigoma, bx, rv, cmd} = g;
+  all[S.gameId] = {g: {mode, seed, sente, gote, names, status, moves, stamps, createdAt, startedAt, result, furigoma, bx, rv, cmd}, updatedAt: g.updatedAt || Date.now()};
   const ids = Object.keys(all).sort((a, b) => all[b].updatedAt - all[a].updatedAt);
   for (const id of ids.slice(30)) delete all[id];
   lsSet('games', all);
@@ -1633,13 +1643,13 @@ async function createGame(pref, players, mode){
   if (S.net === 'ntfy'){
     const id = rid(12);
     const names = {...(players ? S.game?.names : {}), [S.myId]: S.myName.trim()};
-    try { await Ntfy.post(id, {k:'create', by:S.myId, t:now, g:{mode, seed, sente, gote, names, furigoma, bx: mode === 'item' ? 1 : 0, cmd: {[S.myId]: !!S.cheat}}, n:rid(10)}); }
+    try { await Ntfy.post(id, {k:'create', by:S.myId, t:now, g:{mode, seed, sente, gote, names, furigoma, bx: mode === 'item' ? 1 : 0, rv: 2, cmd: {[S.myId]: !!S.cheat}}, n:rid(10)}); }
     catch (e){ toast(errText(e)); return; }
     openGame(id); return id;
   }
   const id = 'g' + now.toString(36) + Math.random().toString(36).slice(2, 6);
   const data = {sente, gote, creator: S.myId, status: sente && gote ? 'playing' : 'waiting', mode, seed, moves:[], stamps:[], result:null,
-    createdAt: now, updatedAt: now, turn: 0, furigoma, bx: mode === 'item' ? 1 : 0, cmd: {[S.myId]: !!S.cheat}};
+    createdAt: now, updatedAt: now, turn: 0, furigoma, bx: mode === 'item' ? 1 : 0, rv: 2, cmd: {[S.myId]: !!S.cheat}};
   if (sente && gote) data.startedAt = now;
   try { await S.db.doc('games/' + id).set(data); openGame(id); return id; }
   catch (e){ toast(errText(e)); }
