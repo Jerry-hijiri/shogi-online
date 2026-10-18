@@ -348,6 +348,13 @@ button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px so
 .fx-flash.cyan{background:#dff8ff}
 .cell.tgt.roomt::before{box-shadow:0 0 0 3px #38B6E8,0 0 14px #7FE0FF}
 
+/* meteor */
+.fx-meteor{z-index:88;width:0;height:0}
+.fx-meteor i{position:absolute;left:-26px;top:-26px;width:52px;height:52px;border-radius:50%;
+  background:radial-gradient(circle at 40% 40%,#fff8d0,#ffb02e 35%,#e2401c 60%,rgba(120,20,0,.9) 72%);box-shadow:0 0 30px 12px rgba(255,120,30,.8)}
+.fx-meteor i::after{content:"";position:absolute;right:40px;top:6px;width:240px;height:40px;border-radius:20px;transform-origin:100% 50%;
+  background:linear-gradient(90deg,transparent,rgba(255,120,30,.25) 30%,rgba(255,170,60,.85));filter:blur(3px)}
+
 /* zaoriku */
 .pc.revenant{opacity:.62;filter:grayscale(.6) brightness(1.15) drop-shadow(0 0 8px #9fd3ff);animation:ghostfloat 2.4s ease-in-out infinite;z-index:3}
 @keyframes ghostfloat{0%,100%{translate:0 -8%}50%{translate:0 -16%}}
@@ -995,6 +1002,11 @@ const ItemShogi = (() => {
   function act(st, a, free){
     const s = st.turn, T = st.T;
     if (st.result) return null;
+    if (a === '#D'){
+      if (!st.cards[1 - s].length) return null;
+      const n = clone(st), lost = n.cards[1 - s].length; n.cards[1 - s] = [];
+      return {st:n, ev:[{type:'meteor', side:s, target:1 - s, n:lost}], text:`隕石！相手の持ち札${lost}枚を破壊`, pub:`隕石！持ち札${lost}枚が破壊された`, item:true};
+    }
     if (a === '#N'){
       // a player switched boxes off; the record is visible only to that player
       if (st.noBoxes) return null;
@@ -1537,6 +1549,13 @@ function syncCmd(){
   if (S.net === 'ntfy'){ if (Ntfy.ready) Ntfy.send({k:'cmd', on: !!S.cheat, by: S.myId, t: Date.now()}); else S.cmdSending = null; }
   else S.gameRef?.update({cmd: {[S.myId]: !!S.cheat}}).catch(() => { S.cmdSending = null; });
 }
+function applyDestroy(){
+  if (!S.destroyQueued || S.destroyQueued !== (S.local ? 'local' : S.gameId) || !canAct()) return;
+  S.destroyQueued = null;
+  const pos = getRep().pos;
+  if (!pos.cards[1 - pos.turn].length){ toast('相手は持ち札を持っていません'); return; }
+  doAction('#D');
+}
 function applyNoBox(){
   if (!S.noBoxQueued || S.noBoxQueued !== (S.local ? 'local' : S.gameId)) return;
   const pos = getRep().pos;
@@ -1566,7 +1585,7 @@ function applyGame(d){
   saveRecent(d);
   render(); playNew();
   if (S.cmdSending != null && !!d.cmd?.[S.myId] === S.cmdSending) S.cmdSending = null;
-  syncCmd(); maybeBoth(); applyNoBox();
+  syncCmd(); maybeBoth(); applyNoBox(); applyDestroy();
 }
 function applyGameSnap(snap){
   if (!snap.exists){
@@ -2196,6 +2215,7 @@ async function playEv(ev){
     case 'bounce': ring(ev.sq, '#E53935'); banner('ボヨン！', '', above(ev.sq, .9)); SFX.boing(); break;
     case 'geon': fxGold(ev.sq); SFX.gold(); break;
     case 'zaoriku': return fxZaoriku(ev.sq, ev.side);
+    case 'meteor': return fxMeteor(ev.target, ev.n);
     case 'boxesoff': if (canSee(ev.side)) banner('？ボックスを無しにしました', 'small'); break;
     case 'boxeson': banner('カード戦スタート！', 'gold'); SFX.roulette(); for (const b of document.querySelectorAll('.ibox')) b.animate([{scale: 0}, {scale: 1.3, offset: .6}, {scale: 1}], {duration: 600}); break;
     case 'box': fxRoulette(ev.item, !canSee(ev.side)); SFX.roulette(); break;
@@ -2677,6 +2697,38 @@ async function sendFun(type){
   else S.room?.emit('fun', {game: S.gameId, f:type, s:from, d:dice}).catch(() => {});
 }
 
+/* ---------- Meteor: fireballs rain on the opponent's band and smash every card they hold ---------- */
+async function fxMeteor(target, n){
+  const band = document.querySelector(`.who[data-side="${target}"]`)?.closest('.band'), br = band?.getBoundingClientRect();
+  if (!br) return;
+  const dark = fx('fx-dark', '', {}, 4200);
+  banner('隕石落下！', 'red', {x: innerWidth / 2, y: innerHeight * .22});
+  tone(90, 1.4, 'sawtooth', .07, 40);
+  const cards = [...band.querySelectorAll('.bcard')];
+  const spots = (cards.length ? cards : [band]).map(el => { const r = el.getBoundingClientRect(); return {x: r.left + r.width / 2, y: r.top + r.height / 2}; });
+  const hits = Math.max(4, spots.length + 2);
+  for (let i = 0; i < hits; i++){
+    const tgt = spots[i % spots.length], tx = tgt.x + (i >= spots.length ? (Math.random() - .5) * br.width * .6 : 0), ty = tgt.y;
+    const sx = tx + 380 + Math.random() * 200, sy = ty - 520 - Math.random() * 200, ang = Math.atan2(ty - sy, tx - sx);
+    setTimeout(async () => {
+      const m = fx('fx-meteor', '<i></i>', {left: sx + 'px', top: sy + 'px', rotate: ang + 'rad'}, 1200);
+      noise(.5, 700, .5, .9, 'bandpass');
+      await m.animate([{left: sx + 'px', top: sy + 'px'}, {left: tx + 'px', top: ty + 'px'}], {duration: 520, easing: 'cubic-bezier(.5,0,1,1)', fill: 'forwards'}).finished;
+      m.remove();
+      fx('fx-flash', '', {}, 300);
+      fx('fx-shock', '', {left: tx + 'px', top: ty + 'px'}, 650);
+      particles({x: tx, y: ty});
+      tone(70, .7, 'sine', .45, 25); noise(.6, 220, .7, 2.6, 'lowpass');
+      const table = document.querySelector('.table'); table?.classList.remove('shake'); void table?.offsetWidth; table?.classList.add('shake');
+      cards[i]?.animate([{scale: 1, rotate: '0deg', opacity: 1}, {scale: 1.6, rotate: (Math.random() - .5) * 120 + 'deg', opacity: 0, filter: 'brightness(3)'}], {duration: 500, fill: 'forwards'});
+    }, i * 320);
+  }
+  await wait(hits * 320 + 900);
+  banner(`持ち札${n}枚を破壊！`, 'red small', {x: innerWidth / 2, y: innerHeight * .3});
+  await wait(1100);
+  dark.classList.add('out');
+}
+
 /* ---------- Zaoriku: a retro RPG message window, then a golden pillar raises the king as a ghost ---------- */
 function dqWindow(lines){
   return new Promise(async res => {
@@ -2891,6 +2943,11 @@ function runCommand(raw){
     if (S.view === 'game' && !S.local){ S.cmdSending = null; syncCmd(); }
   } else if (c === 'unko') sendFun('unko');
   else if (c === 'fuckyou') sendFun('fy');
+  else if (c === 'destroy'){
+    if (S.view !== 'game' || !isItem()) toast('カード戦の対局中に使えます');
+    else if (!S.local && info().mySide === null) toast('対局しているプレイヤーだけ使えます');
+    else { S.destroyQueued = S.local ? 'local' : S.gameId; toast(canAct() ? '隕石を落とします！' : '自分の番になったら隕石を落とします'); closeCmd(); applyDestroy(); return; }
+  }
   else if (c === 'noitem' || c === 'noitems'){
     if (S.view !== 'game' || !isItem()) toast('カード戦の対局中に使えます');
     else if (!S.local && info().mySide === null) toast('対局しているプレイヤーだけ使えます');
@@ -2898,7 +2955,7 @@ function runCommand(raw){
     else { S.noBoxQueued = S.local ? 'local' : S.gameId; toast(canAct() ? '？ボックスを無しにしました（相手には表示されません）' : '自分の番になったら？ボックスを無しにします（相手には表示されません）'); closeCmd(); applyNoBox(); return; }
   }
   else if (['kingbombee', 'kingbonbee', 'kingbonby', 'bombee', 'キングボンビー'].includes(c)) sendFun('kb');
-  else if (c === 'help') toast('コマンド：items（カード戦のON/OFF）、noitem（？ボックスを無しに）、unko、fuckyou、kingbombee');
+  else if (c === 'help') toast('コマンド：items（カード戦のON/OFF）、noitem（？ボックスを無しに）、destroy（相手の持ち札を全て破壊）、unko、fuckyou、kingbombee');
   else if (c) toast(`「${c}」というコマンドはありません（help で一覧）`);
   closeCmd(); render();
 }
