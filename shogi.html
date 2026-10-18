@@ -225,6 +225,7 @@ button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px so
 .cut-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}
 .cmdlist{position:fixed;left:calc(10px + env(safe-area-inset-left, 0px));top:84px;z-index:60;width:200px;background:rgba(42,32,24,.94);color:#FFF4D6;border-radius:14px;padding:10px 8px;box-shadow:0 10px 30px rgba(0,0,0,.3);font-size:12px}
 body.cl-on .top,body.cl-on #lobby,body.cl-on #game{padding-left:220px;box-sizing:border-box}
+.cl-sec{margin:8px 6px 4px;padding-top:8px;border-top:1px dashed rgba(255,208,138,.4);color:#FFD08A;font-size:11px;font-weight:900;letter-spacing:.08em}
 .cl-head{display:flex;flex-direction:column;gap:1px;padding:0 6px 8px;border-bottom:1px solid rgba(255,244,214,.15);margin-bottom:6px}
 .cl-head b{font-size:13px}
 .cl-head span{color:#cbb89f;font-size:10.5px}
@@ -1220,6 +1221,7 @@ const S = {
 S.cheat = lsGet('cheat', false);      // card mode shown (command: item)
 S.unlimited = lsGet('unlimited', false);  // every card usable any time (secret command)
 S.cmdList = lsGet('cmdlist', false);      // command list pinned on the left
+S.secretShown = lsGet('secretcmd', false); // hidden commands listed (after the passphrase)
 if (ENV === 'web'){
   S.myId = lsGet('me', null) || (() => { const id = rid(16); lsSet('me', id); return id; })();
   S.myName = lsGet('name', '');
@@ -1794,20 +1796,24 @@ function render(){
 }
 // Secret command list, only on this screen
 const COMMANDS = [
-  ['item', 'カード戦の表示', () => S.cheat],
-  ['irespecthijirisansomuch', 'カード使い放題', () => S.unlimited],
-  ['itembox', '？ボックスの有り/無し（相手に出ない）', () => S.view === 'game' && isItem() && !getRep().pos.noBoxes],
-  ['destroy', '相手の持ち札を全て破壊'],
   ['unko', 'うんこを投げる'],
   ['fuckyou', '中指を立てる'],
   ['kingbombee', 'キングボンビー'],
   ['command', 'この一覧を閉じる'],
 ];
+// shown only after the passphrase (which itself is never listed)
+const SECRET_COMMANDS = [
+  ['irespecthijirisansomuch', 'カード使い放題', () => S.unlimited],
+  ['item', 'カード戦の表示', () => S.cheat],
+  ['itembox', '？ボックスの有り/無し（相手に出ない）', () => S.view === 'game' && isItem() && !getRep().pos.noBoxes],
+  ['destroy', '相手の持ち札を全て破壊'],
+];
 function renderCmdList(){
   const el = $('#cmdList');
   document.body.classList.toggle('cl-on', !!S.cmdList);
   if (!S.cmdList){ el.innerHTML = ''; return; }
-  el.innerHTML = `<div class="cmdlist"><div class="cl-head"><b>コマンド</b><span>「/」で入力 ・ クリックでも実行</span></div>${COMMANDS.map(([c, d, on]) => `<button class="cl-row" data-cmd="${c}"><code>${c}</code><span>${d}${on ? ` <em class="${on() ? 'on' : ''}">${on() ? 'ON' : 'OFF'}</em>` : ''}</span></button>`).join('')}</div>`;
+  const row = ([c, d, on]) => `<button class="cl-row" data-cmd="${c}"><code>${c}</code><span>${d}${on ? ` <em class="${on() ? 'on' : ''}">${on() ? 'ON' : 'OFF'}</em>` : ''}</span></button>`;
+  el.innerHTML = `<div class="cmdlist"><div class="cl-head"><b>コマンド</b><span>「/」で入力 ・ クリックでも実行</span></div>${COMMANDS.map(row).join('')}${S.secretShown ? `<div class="cl-sec">隠しコマンド</div>${SECRET_COMMANDS.map(row).join('')}` : ''}</div>`;
 }
 function renderModal(){
   if (S.modal !== 'rules'){ $('#modal').innerHTML = ''; return; }
@@ -2992,7 +2998,10 @@ function runCommand(raw){
     if (S.view === 'game' && !S.local){ S.cmdSending = null; syncCmd(); }
     return false;
   };
-  if (c === 'command' || c === 'commands'){
+  if (c === 'arigatohijirisan'){
+    S.secretShown = !S.secretShown; lsSet('secretcmd', S.secretShown);
+    if (S.secretShown && !S.cmdList){ S.cmdList = true; lsSet('cmdlist', true); }
+  } else if (c === 'command' || c === 'commands'){
     S.cmdList = !S.cmdList; lsSet('cmdlist', S.cmdList);
   } else if (c === 'items' || c === 'item'){
     setCards(!S.cheat);
