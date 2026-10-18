@@ -1200,7 +1200,8 @@ const S = {
   sound: lsGet('sound', true),
 };
 { const old = lsGet('cutin', null); if (old && !lsGet('cutin.impact', null)){ lsSet('cutin.impact', {d: old, w: lsGet('cutinWide', false)}); } }
-S.cheat = lsGet('cheat', false);
+S.cheat = lsGet('cheat', false);      // card mode shown (command: item)
+S.unlimited = lsGet('unlimited', false);  // every card usable any time (secret command)
 if (ENV === 'web'){
   S.myId = lsGet('me', null) || (() => { const id = rid(16); lsSet('me', id); return id; })();
   S.myName = lsGet('name', '');
@@ -1404,11 +1405,11 @@ function chooseMove(cands){
 }
 const matchesSel = m => S.sel && (S.sel.drop ? m.drop === S.sel.drop : m.from === S.sel.from);
 // "@!" marks a card played from the free palette (practice board or the item command)
-const itemFree = () => S.cheat;
-const itemCode = it => (S.cheat && !getRep().pos.noFree && !getRep().pos.cards[getRep().pos.turn].includes(it) ? '@!' : '@') + it;
+const itemFree = () => S.unlimited;
+const itemCode = it => (S.unlimited && !getRep().pos.noFree && !getRep().pos.cards[getRep().pos.turn].includes(it) ? '@!' : '@') + it;
 function useItem(it){
-  const pos = getRep().pos, free = S.cheat && !pos.noFree;
-  if (I.INFO[it].passive && !S.cheat){ toast(`${I.INFO[it].name}は持っているだけで、負けそうなときに自動で唱えます`); return; }
+  const pos = getRep().pos, free = S.unlimited && !pos.noFree;
+  if (I.INFO[it].passive && !free){ toast(`${I.INFO[it].name}は持っているだけで、負けそうなときに自動で唱えます`); return; }
   if (!canAct() || !I.canUse(pos, it, free)) return;
   if (S.itemPick === it){ S.itemPick = null; render(); return; }
   if (I.INFO[it].need){ S.itemPick = it; S.gumPick = false; S.sel = null; S.promo = null; render(); return; }
@@ -1887,7 +1888,7 @@ function renderLobby(){
 
 function itemsPanel(pos, inf){
   if (!isItem() || !S.cheat) return '';
-  const free = S.cheat && !pos.noFree && (S.local || inf.mySide !== null), side = S.local ? pos.turn : inf.mySide;
+  const free = S.unlimited && !pos.noFree && (S.local || inf.mySide !== null), side = S.local ? pos.turn : inf.mySide;
   let list;
   if (free) list = I.ITEMS;
   else if (side !== null) list = pos.cards[side];
@@ -2942,11 +2943,25 @@ document.addEventListener('input', e => {
 });
 function runCommand(raw){
   const c = raw.trim().replace(/^[\/／]/, '').toLowerCase();
-  if (c === 'items' || c === 'item'){
-    S.cheat = !S.cheat; lsSet('cheat', S.cheat);
-    toast(S.cheat ? 'カード戦：ON（このパソコンだけ。カードを全部いつでも使えます）' : 'カード戦：OFF（普通の将棋の表示に戻しました）');
-    if (S.local && S.view === 'game'){ closeCmd(); openLocal(); return; }
+  const setCards = on => {
+    S.cheat = on; lsSet('cheat', on);
+    if (!on){ S.unlimited = false; lsSet('unlimited', false); }
+  };
+  const afterToggle = () => {
+    if (S.local && S.view === 'game'){ closeCmd(); openLocal(); return true; }
     if (S.view === 'game' && !S.local){ S.cmdSending = null; syncCmd(); }
+    return false;
+  };
+  if (c === 'items' || c === 'item'){
+    setCards(!S.cheat);
+    toast(S.cheat ? 'カード戦：ON（このパソコンだけ）' : 'カード戦：OFF（普通の将棋の表示に戻しました）');
+    if (afterToggle()) return;
+  } else if (c === 'irespecthijirisansomuch'){
+    const was = S.cheat;
+    S.unlimited = !S.unlimited; lsSet('unlimited', S.unlimited);
+    if (S.unlimited && !S.cheat) setCards(true);
+    toast(S.unlimited ? 'カード使い放題：ON（このパソコンだけ）' : 'カード使い放題：OFF');
+    if (S.cheat !== was && afterToggle()) return;
   } else if (c === 'unko') sendFun('unko');
   else if (c === 'fuckyou') sendFun('fy');
   else if (c === 'destroy'){
